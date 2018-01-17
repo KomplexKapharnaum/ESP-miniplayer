@@ -24,7 +24,7 @@ void setup() {
   // INTERFACE ENGINE
   udp_setup();
 
-  LOGF2("Device Ready, id:%i, channel:%i ",settings_id(),settings_ch());
+  LOGF2("Device Ready, id:%i, channel:%i\n",settings_id(),settings_ch());
 }
 
 void loop() {

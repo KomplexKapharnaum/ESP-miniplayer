@@ -15,7 +15,7 @@ void audio_setup()
   out = new AudioOutputI2SDAC();
   //out->SetBitsPerSample(16);
   //out->SetRate(44100);
-  //out->SetGain(0.1);  
+  out->SetGain(0.08);  
 
   mp3 = new AudioGeneratorMP3();
 }
@@ -34,6 +34,12 @@ void audio_stop()
   mp3->stop();
   file->close();
   LOG("stop");
+}
+
+void audio_volume(int vol) 
+{
+  float v = vol / 200.0;
+  out->SetGain(v);  
 }
 
 bool audio_loop()
