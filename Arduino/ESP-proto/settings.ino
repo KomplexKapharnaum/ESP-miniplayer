@@ -31,14 +31,6 @@ char* settings_idstr() {
   return idSTR;
 }
 
-void settings_idset(byte id) {
-  EEPROM.begin(128);
-  EEPROM.write(0, id);
-  EEPROM.end();
-
-  nodeID = id;
-}
-
 char* settings_name() {
   char nodeName[18];
   sprintf(nodeName, "%s%03i","ESP-miniplayer-", nodeID);
@@ -51,15 +43,6 @@ byte settings_ch() {
 
 char* settings_chstr() {
   char chSTR[3];
-  sprintf(chSTR, "c%02i", nodeCH);
+  sprintf(chSTR, "c%02i", nodeID);
   return chSTR;
 }
-
-void settings_chset(byte ch) {
-  EEPROM.begin(128);
-  EEPROM.write(1, ch);
-  EEPROM.end();
-
-  nodeCH = ch;
-}
-

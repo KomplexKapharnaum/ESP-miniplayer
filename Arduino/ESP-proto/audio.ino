@@ -10,12 +10,12 @@ AudioOutputI2SDAC *out;
 
 void audio_setup()
 {
-  SD.begin(0); // CS / SS  GPIO for SD module
+  SD.begin(0);
   
   out = new AudioOutputI2SDAC();
   //out->SetBitsPerSample(16);
   //out->SetRate(44100);
-  //out->SetGain(0.1);  
+  //out->SetGain(1.0);  
 
   mp3 = new AudioGeneratorMP3();
 }
@@ -30,7 +30,6 @@ void audio_play(const char *filename)
 
 void audio_stop() 
 {
-  if (!mp3->isRunning()) return;
   mp3->stop();
   file->close();
   LOG("stop");

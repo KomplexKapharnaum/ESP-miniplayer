@@ -1,6 +1,9 @@
 /*
  * WiFiManager (https://github.com/tzapu/WiFiManager)
  */
+ 
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
 #include <WiFiManager.h>         // https://github.com/tzapu/WiFiManager
 
 void wifiman_auto(void)
