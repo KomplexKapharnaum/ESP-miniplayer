@@ -21,7 +21,7 @@ ESPserver.on('newnode', function(node) {
 
 
 var Emidi = require('easymidi');
-var MidiIN = new Emidi.Input('Virtual Raw MIDI 1-0 20:0');
+var MidiIN = new Emidi.Input('ESP-miniplayers', true);
 
 MidiIN.on('noteon', function (msg) {
   var chan = 'c';

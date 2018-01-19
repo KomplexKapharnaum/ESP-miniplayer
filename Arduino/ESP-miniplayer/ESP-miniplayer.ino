@@ -6,7 +6,7 @@
 // REPLACE NODE ID (comment once it has been done !)
 //
 //#define NODE_ID 7
-//#define NODE_CH 2
+#define NODE_CH 2
 
 
 void setup() {
