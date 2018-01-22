@@ -57,11 +57,13 @@ void udp_loop()
 
     // Check MSG-COUNTER
     data = udp_next();
-    if ( data.toInt() <= lastPacket) {
-      LOG("Already played");
-      return udp_clear();
+    if (data != "manual") {
+      if ( data.toInt() <= lastPacket) {
+        LOG("Already played");
+        return udp_clear();
+      }
+      lastPacket = data.toInt();
     }
-    lastPacket = data.toInt();
 
     // Set Server IP
     serverIP = udp_in.remoteIP();
@@ -78,10 +80,11 @@ void udp_loop()
     ESP.wdtFeed();
     data = udp_next();
     if (data == "stop") audio_stop();
-    else if (data == "play") audio_play(udp_next().c_str());
+    else if (data == "play") audio_play(udp_next().toInt());
     else if (data == "volume") audio_volume(udp_next().toInt());
     else if (data == "setchannel") settings_chset(udp_next().toInt());
     else if (data == "setid") settings_idset(udp_next().toInt());
+    else if (data == "loop") audio_loop((bool) udp_next().toInt());
     else LOGF ("Command unknown: %s\n", data.c_str());
 
     return udp_clear();
@@ -114,6 +117,7 @@ void udp_beacon()
   msg.add((int)recv_port);
   msg.add((int)settings_ch());
   msg.add(linkStatus);
+  msg.add((int)currentFile);
   msg.send(udp_out); 
   
   udp_out.endPacket();
@@ -121,7 +125,7 @@ void udp_beacon()
 }
 
 //
-// Unpack /esp/who/how/what
+// Unpack /esp/manual/who/how/what
 //
 String udp_next() {
   String dataCopy(currentData.c_str());

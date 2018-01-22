@@ -21,23 +21,32 @@ ESPserver.on('newnode', function(node) {
 
 
 var Emidi = require('easymidi');
-var MidiIN = new Emidi.Input('ESP-miniplayers', true);
+//var MidiIN = new Emidi.Input('ESP-miniplayers', true);
+
+var MidiIN = new Emidi.Input('Virtual Raw MIDI 0-0 16:0');
+// console.log(Emidi.getInputs());
 
 MidiIN.on('noteon', function (msg) {
-  var chan = 'c';
-  if (msg.channel < 9) chan += '0'+(msg.channel+1)
-  else chan += (msg.channel+1)
+  if (msg.note == 1) ESPserver.channel((msg.channel+1)).stop()    // Magic note OFF
+  else ESPserver.channel((msg.channel+1)).play(msg.note)
+  console.log(msg)
+});
 
-  //ESPserver.broadcast('/c02/volume/'+Math.floor(msg.velocity/10))
-  ESPserver.broadcast('/'+chan+'/play/'+msg.note+'.mp3')
+MidiIN.on('cc' , function (msg) {
+
+  // loop
+  if (msg.controller == 1) ESPserver.channel((msg.channel+1)).loop( (msg.value > 63) )
+
 });
 
 MidiIN.on('noteoff', function (msg) {
-  var chan = 'c';
-  if (msg.channel < 9) chan += '0'+(msg.channel+1)
-  else chan += (msg.channel+1)
-  
-  ESPserver.broadcast('/'+chan+'/stop')
+  //ESPserver.channel((msg.channel+1)).stop()
+});
+
+MidiIN.on('stop', function () {
+  console.log('stop!')
+  ESPserver.broadcast('/all/stop');
+  for (var i=1; i<=16; i++) ESPserver.channel(i).stop()
 });
 
 

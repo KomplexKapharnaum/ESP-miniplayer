@@ -79,6 +79,9 @@ class Client extends EventEmitter {
     this.noNews = 0;
     this.udp = null;
     this.infoCounter = 0;
+
+    this.media = 0;
+    this.loop = false;
   }
 
   stop() {
@@ -137,10 +140,49 @@ class Client extends EventEmitter {
 
 }
 
+class Channel {
+  constructor(serv, num) {
+    this.num = num
+    this.server = serv
+
+    this.chan = 'c';
+    if (num < 9) this.chan += '0'+(num)
+    else this.chan += num
+
+    this.media = 0
+    this.doLoop = false
+  }
+
+  send(message) {
+    this.server.broadcast("/"+this.chan+message)
+  }
+
+  play(media) {
+    this.media = media
+    this.send('/play/'+media)
+  }
+
+  stop() {
+    this.media = 0
+    this.send('/stop')
+  }
+
+  loop(doL) {
+    this.doLoop = doL
+    this.server.broadcast("/loop/"+int(this.doLoop))
+  }
+
+
+}
+
 class Server extends Worker {
   constructor() {
     super();
     var that = this;
+
+    this.channels = []
+    for (var i=1; i<=16; i++) this.channels[i] = new Channel(this, i)
+
     this.clients = {};
     this.countCmd = 0;
 
@@ -185,7 +227,8 @@ class Server extends Worker {
         id: message['args'][0],
         port: message['args'][1],
         channel: message['args'][2],
-        link: message['args'][3]
+        link: message['args'][3],
+        media: message['args'][4]
       }
 
       var id = info['id'];
@@ -212,6 +255,7 @@ class Server extends Worker {
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 20)
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 25)
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 40)
+    setTimeout(() => {  this.udpPort.send(oscmsg); }, 50)
   }
 
   getNodeByIP(ip) {
@@ -221,6 +265,17 @@ class Server extends Worker {
 
   getNodeById(id) {
     return this.clients[id];
+  }
+
+  getNodesByChannel(ch) {
+    var nodes = [];
+    for (var id in this.clients)
+      if (this.clients[id].info.channel == ch) nodes.push(this.clients[id]);
+    return nodes;
+  }
+
+  channel(ch) {
+    return this.channels[ch];
   }
 
   getAllNodes() {
