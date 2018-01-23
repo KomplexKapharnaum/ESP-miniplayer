@@ -18,7 +18,7 @@ class MidiInterface {
     this.MidiIN.on('noteon', (msg) => {
       if (msg.note == 1) that.ESPserver.channel((msg.channel+1)).stop()    // Magic note OFF
       else that.ESPserver.channel((msg.channel+1)).play(msg.note, msg.velocity)
-      // console.log(msg)
+      console.log(msg)
     });
 
     // Control Changes
@@ -44,7 +44,7 @@ class MidiInterface {
     // Program Change
     this.MidiIN.on('program', (msg) => {
       console.log(msg)
-      that.ESPserver.channel((msg.channel+1)).bank(msg.number)
+      that.ESPserver.channel((msg.channel+1)).bank(msg.number+1)
     })
 
   }
