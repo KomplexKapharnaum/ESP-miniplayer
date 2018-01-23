@@ -223,8 +223,11 @@ class Server extends Worker {
     var broadcastIP = '255.255.255.255';
     for (var i in ifaces)
       for (var j in ifaces[i])
-        if (ifaces[i][j]['family'] == 'IPv4' && ifaces[i][j]['address'] != '127.0.0.1')
+        if (ifaces[i][j]['family'] == 'IPv4' && ifaces[i][j]['address'] != '127.0.0.1' && !ifaces[i][j]['address'].startsWith('172'))
+        {
           broadcastIP = ip.subnet(ifaces[i][j]['address'], ifaces[i][j]['netmask'])['broadcastAddress']
+          // log(broadcastIP)
+        }
 
     this.udpPort = new OSC.UDPPort({
         localAddress: "0.0.0.0",
