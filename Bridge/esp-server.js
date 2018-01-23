@@ -88,8 +88,12 @@ class Client extends EventEmitter {
     this.udp = null;
     this.infoCounter = 0;
 
-    this.media = 0;
+    this.state = 'stop'
     this.loop = false;
+
+    this.on('stop', () => {this.state = 'stop'})
+    this.on('online', () => {this.state = 'online'})
+    this.on('offline', () => {this.state = 'offline'})
   }
 
   stop() {
@@ -220,12 +224,12 @@ class Server extends Worker {
 
 
     var ifaces = os.networkInterfaces()
-    var broadcastIP = '255.255.255.255';
+    this.broadcastIP = '255.255.255.255';
     for (var i in ifaces)
       for (var j in ifaces[i])
         if (ifaces[i][j]['family'] == 'IPv4' && ifaces[i][j]['address'] != '127.0.0.1' && !ifaces[i][j]['address'].startsWith('172'))
         {
-          broadcastIP = ip.subnet(ifaces[i][j]['address'], ifaces[i][j]['netmask'])['broadcastAddress']
+          this.broadcastIP = ip.subnet(ifaces[i][j]['address'], ifaces[i][j]['netmask'])['broadcastAddress']
           // log(broadcastIP)
         }
 
@@ -234,7 +238,7 @@ class Server extends Worker {
         localPort: PORT_SERVER,
         broadcast: true,
         remotePort: 10000,
-        remoteAddress: broadcastIP
+        remoteAddress: this.broadcastIP
     });
 
     this.udpPort.on("error", function (e) {
@@ -242,7 +246,7 @@ class Server extends Worker {
     });
 
     this.udpPort.on("ready", function () {
-        console.log('OSC Server listening on port ' + PORT_SERVER+ ' / broadcasting on '+broadcastIP);
+        console.log('OSC Server listening on port ' + PORT_SERVER+ ' / broadcasting on '+this.broadcastIP);
     });
 
     this.udpPort.on("osc", function (message, remote) {
@@ -252,10 +256,13 @@ class Server extends Worker {
       var ip = remote.address;
       var info = {
         id: message['args'][0],
-        port: message['args'][1],
-        channel: message['args'][2],
-        link: message['args'][3],
-        media: message['args'][4]
+        version: message['args'][1],
+        port: message['args'][2],
+        channel: message['args'][3],
+        link: message['args'][4],
+        sd: message['args'][5],
+        media: message['args'][6],
+        error: message['args'][7]
       }
 
       var id = info['id'];

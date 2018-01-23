@@ -66,7 +66,7 @@ void udp_loop()
     }
 
     // Set Server IP
-    serverIP = udp_in.remoteIP();
+    // serverIP = udp_in.remoteIP();
     linkStatus = true;
 
     // Check identity
@@ -107,11 +107,14 @@ void udp_beacon()
   // OSC over UDP
   OSCMessage msg("/iam/esp");
   msg.add(ESP.getChipId());
+  msg.add(VERSION_I);
   msg.add((int)recv_port);
   msg.add((int)settings_ch());
   msg.add(linkStatus);
+  msg.add(sdOK);
   if (currentFile != "") msg.add(currentFile.c_str());
   else msg.add("stop");
+  msg.add(errorPlayer.c_str());
   msg.send(udp_out); 
   
   udp_out.endPacket();

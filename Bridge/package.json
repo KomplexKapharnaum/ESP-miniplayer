@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "colors": "^1.1.2",
     "easymidi": "0.0.4",
     "ip": "^1.1.5",
     "osc": "^2.2.0"

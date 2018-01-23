@@ -9,12 +9,21 @@ AudioFileSourceSD *file;
 AudioOutputI2SDAC *out;
 String currentFile = "";
 bool loopMedia = false;
+bool sdOK = false;
+String errorPlayer = "";
 
 const float GAIN_BASE = 0.1;
 
 void audio_setup()
-{
-  SD.begin(0); // CS / SS  GPIO for SD module
+{ 
+  // CS / SS  GPIO for SD module
+  if (!SD.begin(0)) {
+    LOG("SD card error");
+  } 
+  else {
+    LOG("SD card OK");
+    sdOK = true;
+  }
   
   out = new AudioOutputI2SDAC();
   //out->SetBitsPerSample(16);
@@ -30,9 +39,15 @@ void audio_play(String filePath)
   if (filePath == "") return;
   
   file = new AudioFileSourceSD(filePath.c_str());
-  mp3->begin(file, out);
-  currentFile = filePath;
-  LOG("play: "+filePath);
+  if (mp3->begin(file, out)) {
+    currentFile = filePath;
+    errorPlayer = "";
+    LOG("play: "+filePath);
+  }
+  else {
+    errorPlayer = "not found ("+filePath+")";
+    audio_stop();
+  }
 }
 
 void audio_stop() 
@@ -41,6 +56,7 @@ void audio_stop()
   mp3->stop();
   file->close();
   currentFile = "";
+  errorPlayer = "";
   LOG("stop");
 }
 
@@ -70,3 +86,8 @@ bool audio_loop()
   }
   return false;
 }
+
+bool audio_running() {
+  return mp3->isRunning();
+}
+
