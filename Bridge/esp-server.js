@@ -160,7 +160,7 @@ class Channel {
     this.media = 0
     this.volume = 100
     this.doLoop = false
-    this.bank = 0
+    this.bankDir = 0
   }
 
   send(message) {
@@ -172,7 +172,7 @@ class Channel {
 
     this.volume = volume
     this.media = media
-    this.send('/play/'+pad(this.bank, 3)+'/'+pad(this.media, 3)+'/'+this.volume)
+    this.send('/play/'+pad(this.bankDir, 3)+'/'+pad(this.media, 3)+'/'+this.volume)
   }
 
   stop() {
@@ -187,7 +187,7 @@ class Channel {
   }
 
   bank(b) {
-    this.bank = b
+    this.bankDir = b
   }
 
 }
