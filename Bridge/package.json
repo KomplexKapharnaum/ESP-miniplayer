@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "easymidi": "0.0.4",
+    "ip": "^1.1.5",
     "osc": "^2.2.0"
   }
 }

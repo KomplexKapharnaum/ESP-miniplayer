@@ -1,4 +1,6 @@
 var dgram = require('dgram');
+const os = require('os');
+const ip = require('ip');
 const EventEmitter = require('events');
 
 const OSC = require('osc');
@@ -11,6 +13,12 @@ var TIME_GONE = 6000;     // Gone Time
 
 function log(msg) {
   console.log(msg);
+}
+
+function pad(number, length) {
+    var str = '' + number;
+    while (str.length < length) str = '0' + str
+    return str
 }
 
 class Worker extends EventEmitter {
@@ -150,16 +158,21 @@ class Channel {
     else this.chan += num
 
     this.media = 0
+    this.volume = 100
     this.doLoop = false
+    this.bank = 0
   }
 
   send(message) {
     this.server.broadcast("/"+this.chan+message)
   }
 
-  play(media) {
+  play(media, volume) {
+    if (volume === undefined) volume = 100
+
+    this.volume = volume
     this.media = media
-    this.send('/play/'+media)
+    this.send('/play/'+pad(this.bank, 3)+'/'+pad(this.media, 3)+'/'+this.volume)
   }
 
   stop() {
@@ -169,9 +182,13 @@ class Channel {
 
   loop(doL) {
     this.doLoop = doL
-    this.server.broadcast("/loop/"+int(this.doLoop))
+    if (this.doLoop) this.send("/loop/1")
+    else this.send("/loop/0")
   }
 
+  bank(b) {
+    this.bank = b
+  }
 
 }
 
@@ -202,12 +219,19 @@ class Server extends Worker {
     });
 
 
+    var ifaces = os.networkInterfaces()
+    var broadcastIP = '255.255.255.255';
+    for (var i in ifaces)
+      for (var j in ifaces[i])
+        if (ifaces[i][j]['family'] == 'IPv4' && ifaces[i][j]['address'] != '127.0.0.1')
+          broadcastIP = ip.subnet(ifaces[i][j]['address'], ifaces[i][j]['netmask'])['broadcastAddress']
+
     this.udpPort = new OSC.UDPPort({
         localAddress: "0.0.0.0",
         localPort: PORT_SERVER,
         broadcast: true,
         remotePort: 10000,
-        remoteAddress: "10.2.255.255"
+        remoteAddress: broadcastIP
     });
 
     this.udpPort.on("error", function (e) {
@@ -215,7 +239,7 @@ class Server extends Worker {
     });
 
     this.udpPort.on("ready", function () {
-        console.log('OSC Server listening on port ' + PORT_SERVER);
+        console.log('OSC Server listening on port ' + PORT_SERVER+ ' / broadcasting on '+broadcastIP);
     });
 
     this.udpPort.on("osc", function (message, remote) {
@@ -252,10 +276,12 @@ class Server extends Worker {
     var oscmsg = {address: '/esp/'+this.countCmd+message}
     this.udpPort.send(oscmsg);
     this.udpPort.send(oscmsg);
-    setTimeout(() => {  this.udpPort.send(oscmsg); }, 20)
-    setTimeout(() => {  this.udpPort.send(oscmsg); }, 25)
+    setTimeout(() => {  this.udpPort.send(oscmsg); }, 5)
+    setTimeout(() => {  this.udpPort.send(oscmsg); }, 10)
+    setTimeout(() => {  this.udpPort.send(oscmsg); }, 15)
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 40)
-    setTimeout(() => {  this.udpPort.send(oscmsg); }, 50)
+
+    // console.log(oscmsg)
   }
 
   getNodeByIP(ip) {

@@ -5,8 +5,8 @@
 //
 // REPLACE NODE ID (comment once it has been done !)
 //
-//#define NODE_ID 7
-#define NODE_CH 5
+// #define NODE_ID 7
+// #define NODE_CH 6
 
 
 void setup() {
@@ -16,7 +16,11 @@ void setup() {
 
   // WIFI ENGINE
   //wifiman_auto();
-  wifiman_manual("kxkm-wifi", "KOMPLEXKAPHARNAUM");
+  //wifiman_manual("kxkm-wifi", "KOMPLEXKAPHARNAUM");
+  wifiman_manual("kxkm24nano", NULL);
+
+  // OTA
+  ota_setup();
 
   // AUDIO ENGINE
   audio_setup();
@@ -36,5 +40,8 @@ void loop() {
   // INTERFACE ENGINE
   udp_loop();
   ESP.wdtFeed();
+
+  // OTA
+  ota_loop();
 
 }

@@ -7,8 +7,10 @@
 AudioGeneratorMP3 *mp3;
 AudioFileSourceSD *file;
 AudioOutputI2SDAC *out;
-byte currentFile = 0;
-bool loopMedia = true;
+String currentFile = "";
+bool loopMedia = false;
+
+const float GAIN_BASE = 0.1;
 
 void audio_setup()
 {
@@ -17,22 +19,20 @@ void audio_setup()
   out = new AudioOutputI2SDAC();
   //out->SetBitsPerSample(16);
   //out->SetRate(44100);
-  out->SetGain(0.08);  
+  out->SetGain(GAIN_BASE);  
 
   mp3 = new AudioGeneratorMP3();
 }
 
-void audio_play(byte fileNumber) 
+void audio_play(String filePath) 
 {
   if (mp3->isRunning()) audio_stop();
-  if (fileNumber == 0) return;
+  if (filePath == "") return;
   
-  char fileSTR[3];
-  sprintf(fileSTR, "%03i.mp3", fileNumber);
-  file = new AudioFileSourceSD(fileSTR);
+  file = new AudioFileSourceSD(filePath.c_str());
   mp3->begin(file, out);
-  currentFile = fileNumber;
-  LOGF ("play: %s\n", fileSTR);
+  currentFile = filePath;
+  LOG("play: "+filePath);
 }
 
 void audio_stop() 
@@ -40,14 +40,15 @@ void audio_stop()
   if (!mp3->isRunning()) return;
   mp3->stop();
   file->close();
-  currentFile = 0;
+  currentFile = "";
   LOG("stop");
 }
 
 void audio_volume(int vol) 
 {
-  float v = vol / 200.0;
-  out->SetGain(v);  
+  float v = vol * GAIN_BASE / 100.0;
+  out->SetGain(v);
+  LOGF("gain: %f\n", v);  
 }
 
 void audio_loop(bool doLoop) 
@@ -59,10 +60,10 @@ bool audio_loop()
 {
   if (mp3->isRunning()) {
     if (mp3->loop()) return true;
-    else if (loopMedia && currentFile > 0) {
+    else if (loopMedia && currentFile != "") {
       //audio_play(currentFile);
       file->seek(0,SEEK_SET);
-      LOGF ("loop: %03i\n", currentFile);
+      LOG("loop: "+currentFile);
       return true;
     }
     else audio_stop();

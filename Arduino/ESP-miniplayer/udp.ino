@@ -80,7 +80,11 @@ void udp_loop()
     ESP.wdtFeed();
     data = udp_next();
     if (data == "stop") audio_stop();
-    else if (data == "play") audio_play(udp_next().toInt());
+    else if (data == "play") {
+      String mediaPath = udp_next()+"/"+udp_next()+".mp3";
+      audio_volume(udp_next().toInt());
+      audio_play(mediaPath);
+    }
     else if (data == "volume") audio_volume(udp_next().toInt());
     else if (data == "setchannel") settings_chset(udp_next().toInt());
     else if (data == "setid") settings_idset(udp_next().toInt());
@@ -100,24 +104,14 @@ void udp_beacon()
 {
   udp_out.beginPacket(serverIP, send_port);
 
-  // RAW over UDP
-  /*String replyPacekt ("/iam/esp/");
-  replyPacekt += recv_port;
-  replyPacekt += "/";
-  replyPacekt += settings_id();
-  replyPacekt += "/";
-  replyPacekt += settings_ch();
-  replyPacekt += "/";
-  replyPacekt += (linkStatus == 0) ? "broadcasting" : "linked";
-  udp_out.write(replyPacekt.c_str());*/
-
   // OSC over UDP
   OSCMessage msg("/iam/esp");
   msg.add(ESP.getChipId());
   msg.add((int)recv_port);
   msg.add((int)settings_ch());
   msg.add(linkStatus);
-  msg.add((int)currentFile);
+  if (currentFile != "") msg.add(currentFile.c_str());
+  else msg.add("stop");
   msg.send(udp_out); 
   
   udp_out.endPacket();
