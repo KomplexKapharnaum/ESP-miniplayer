@@ -10,8 +10,11 @@
 // #define NODE_CH 2
 #define NODE_SPEAKER 2  // 1: small / 2: big
 
+//
+// SOFT CONFIG
+//
 #define ENABLE_IFACE
-//#define ENABLE_OTA
+#define ENABLE_OTA
 
 void setup() {
   LOGSETUP();

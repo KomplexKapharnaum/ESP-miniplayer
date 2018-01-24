@@ -16,6 +16,7 @@ class MidiInterface {
 
     // NoteON :: PLAY - STOP
     this.MidiIN.on('noteon', (msg) => {
+      msg.note += 1
       if (msg.note == 1) that.ESPserver.channel((msg.channel+1)).stop()    // Magic note OFF
       else that.ESPserver.channel((msg.channel+1)).play(msg.note, msg.velocity)
       console.log(msg)
