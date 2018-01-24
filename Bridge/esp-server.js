@@ -3,6 +3,7 @@ const os = require('os');
 const ip = require('ip');
 const EventEmitter = require('events');
 const crypto = require('crypto')
+var debounce = require('debounce')
 
 const OSC = require('osc');
 
@@ -155,6 +156,8 @@ class Client extends EventEmitter {
 
 class Channel {
   constructor(serv, num) {
+    var that = this;
+
     this.num = num
     this.server = serv
 
@@ -163,21 +166,27 @@ class Channel {
     else this.chan += num
 
     this.media = 0
-    this.volume = 100
     this.doLoop = false
     this.bankDir = 1
+    this.volumeCh = 100
+    this.velocity = 100
+
+    this.sendGain = debounce(()=> {
+      this.send("/volume/"+that.gain())
+      // console.log(that.gain())
+    }, 100)
   }
 
   send(message) {
     this.server.broadcast("/"+this.chan+message)
   }
 
-  play(media, volume) {
-    if (volume === undefined) volume = 100
+  play(media, velocity) {
+    if (velocity === undefined) velocity = 100
+    this.velocity = velocity
 
-    this.volume = volume
     this.media = media
-    this.send('/play/'+pad(this.bankDir, 3)+'/'+pad(this.media, 3)+'/'+this.volume)
+    this.send('/play/'+pad(this.bankDir, 3)+'/'+pad(this.media, 3)+'/'+this.gain())
   }
 
   stop() {
@@ -186,13 +195,29 @@ class Channel {
   }
 
   loop(doL) {
-    this.doLoop = doL
-    if (this.doLoop) this.send("/loop/1")
-    else this.send("/loop/0")
+    if (doL !== undefined) {
+      this.doLoop = doL
+      if (this.doLoop) this.send("/loop/1")
+      else this.send("/loop/0")
+    }
+    return this.doLoop
   }
 
   bank(b) {
-    this.bankDir = b
+    if (b !== undefined) this.bankDir = b
+    return this.bankDir
+  }
+
+  volume(v) {
+    if (v !== undefined && v != this.volumeCh) {
+      this.volumeCh = v
+      this.sendGain();
+    }
+    return this.volumeCh
+  }
+
+  gain() {
+    return Math.round(this.volumeCh*this.velocity/100.0)
   }
 
 }
@@ -253,6 +278,7 @@ class Server extends Worker {
     this.udpPort.on("osc", function (message, remote) {
 
       if (message['address'] == "/remote" ) {
+        console.log('remote')
         that.broadcast(message['args'][0]);
       }
 

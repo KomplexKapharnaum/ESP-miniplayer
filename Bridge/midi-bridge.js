@@ -19,7 +19,7 @@ class MidiInterface {
       msg.note += 1
       if (msg.note == 1) that.ESPserver.channel((msg.channel+1)).stop()    // Magic note OFF
       else that.ESPserver.channel((msg.channel+1)).play(msg.note, msg.velocity)
-      console.log(msg)
+      // console.log(msg)
     });
 
     // Control Changes
@@ -27,7 +27,8 @@ class MidiInterface {
 
       // loop
       if (msg.controller == 1) that.ESPserver.channel((msg.channel+1)).loop( (msg.value > 63) )
-
+      else if (msg.controller == 7) that.ESPserver.channel((msg.channel+1)).volume( msg.value )
+      
     });
 
     // NoteOFF :: STOP

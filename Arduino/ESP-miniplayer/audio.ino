@@ -26,10 +26,10 @@ void audio_setup()
   }
 
   if (settings_speaker() == 1) {
-    GAIN_BASE = 0.1;
+    GAIN_BASE = 0.2;
   }
   else if (settings_speaker() == 2) {
-    GAIN_BASE = 0.05;
+    GAIN_BASE = 0.15;
   }
   
   out = new AudioOutputI2SDAC();

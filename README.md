@@ -1,10 +1,14 @@
 # ESP-miniplayer
 
 ## TODO
-- Skip to
-- State control (play / stop / end)
-- Name files 002-*
+- VOLUME !
+-
+- Skip to + State control (play / stop / end)
+-
+- File registery
+    => allow Name files 002-*
+    => Store date / size hash ?
 
 ## DEVICES
 - Test ESP32
-- Test Sigma Delta ouput
+- Test Sigma Delta output

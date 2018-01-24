@@ -1,14 +1,14 @@
 #include <Arduino.h>
 #include "debug.h"
 
-#define VERSION_I 0.27
+#define VERSION_I 0.28
 
 //
 // HARD CONFIG (comment once it has been done !)
 //
 // #define NODE_ID 7
-// #define NODE_CH 2
-#define NODE_SPEAKER 2  // 1: small / 2: big
+//#define NODE_CH 7
+//#define NODE_SPEAKER 1  // 1: small / 2: big
 
 //
 // SOFT CONFIG
