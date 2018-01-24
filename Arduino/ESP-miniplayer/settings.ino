@@ -1,6 +1,7 @@
 #include <EEPROM.h>
 byte nodeID;
 byte nodeCH;
+byte nodeSPEAKER;
 
 void settings_setup() {
   
@@ -16,9 +17,19 @@ void settings_setup() {
     EEPROM.write(1, NODE_CH);
   #endif
 
+  // NODE SPEAKER
+  #ifdef NODE_SPEAKER
+    EEPROM.write(2, NODE_SPEAKER);
+  #endif
+
   nodeID = EEPROM.read(0);
   nodeCH = EEPROM.read(1);
+  nodeSPEAKER = EEPROM.read(2);
   EEPROM.end();
+}
+
+byte settings_speaker() {
+  return nodeSPEAKER;
 }
 
 byte settings_id() {

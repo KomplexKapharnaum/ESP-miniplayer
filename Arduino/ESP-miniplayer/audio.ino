@@ -12,7 +12,7 @@ bool loopMedia = false;
 bool sdOK = false;
 String errorPlayer = "";
 
-const float GAIN_BASE = 0.1;
+float GAIN_BASE = 0.1;
 
 void audio_setup()
 { 
@@ -23,6 +23,13 @@ void audio_setup()
   else {
     LOG("SD card OK");
     sdOK = true;
+  }
+
+  if (settings_speaker() == 1) {
+    GAIN_BASE = 0.1;
+  }
+  else if (settings_speaker() == 2) {
+    GAIN_BASE = 0.05;
   }
   
   out = new AudioOutputI2SDAC();

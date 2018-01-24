@@ -2,6 +2,7 @@ var dgram = require('dgram');
 const os = require('os');
 const ip = require('ip');
 const EventEmitter = require('events');
+const crypto = require('crypto')
 
 const OSC = require('osc');
 
@@ -164,7 +165,7 @@ class Channel {
     this.media = 0
     this.volume = 100
     this.doLoop = false
-    this.bankDir = 0
+    this.bankDir = 1
   }
 
   send(message) {
@@ -205,7 +206,7 @@ class Server extends Worker {
     for (var i=1; i<=16; i++) this.channels[i] = new Channel(this, i)
 
     this.clients = {};
-    this.countCmd = 0;
+    this.lastSend = "";
 
     this.on('start', function() {
       this.udpPort.open();
@@ -250,6 +251,11 @@ class Server extends Worker {
     });
 
     this.udpPort.on("osc", function (message, remote) {
+
+      if (message['address'] == "/remote" ) {
+        that.broadcast(message['args'][0]);
+      }
+
       if (message['address'] != "/iam/esp" ) return;
 
       // Parse info
@@ -281,9 +287,11 @@ class Server extends Worker {
   }
 
   broadcast(message) {
-    this.countCmd+=1
 
-    var oscmsg = {address: '/esp/'+this.countCmd+message}
+    // Hash message with Time
+    var hash = crypto.createHash('sha1').update(message+'-'+(new Date()).getTime()).digest('hex').substring(0,10);
+
+    var oscmsg = {address: '/esp/'+hash+message}
     this.udpPort.send(oscmsg);
     this.udpPort.send(oscmsg);
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 5)
@@ -291,7 +299,7 @@ class Server extends Worker {
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 15)
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 40)
 
-    // console.log(oscmsg)
+    this.lastSend = oscmsg
   }
 
   getNodeByIP(ip) {

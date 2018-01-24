@@ -15,7 +15,7 @@ char incomingPacket[1472];
 String currentData;
 
 bool linkStatus = false;
-uint32_t lastPacket = 0;
+String lastPacket = "";
 
 void udp_setup()
 {
@@ -58,11 +58,11 @@ void udp_loop()
     // Check MSG-COUNTER
     data = udp_next();
     if (data != "manual") {
-      if ( data.toInt() <= lastPacket) {
+      if ( data == lastPacket) {
         LOG("Already played");
         return udp_clear();
       }
-      lastPacket = data.toInt();
+      lastPacket = data;
     }
 
     // Set Server IP

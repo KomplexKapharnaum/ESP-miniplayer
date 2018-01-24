@@ -60,6 +60,8 @@ function display() {
       console.log()
     }
   }
+
+  console.log('Last send: ',ESPserver.lastSend)
 }
 
 setInterval(display, 500)

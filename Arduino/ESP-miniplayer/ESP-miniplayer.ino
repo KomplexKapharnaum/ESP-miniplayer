@@ -1,17 +1,25 @@
 #include <Arduino.h>
 #include "debug.h"
 
-#define VERSION_I 0.2
+#define VERSION_I 0.27
 
 //
-// REPLACE NODE ID (comment once it has been done !)
+// HARD CONFIG (comment once it has been done !)
 //
 // #define NODE_ID 7
 // #define NODE_CH 2
+#define NODE_SPEAKER 2  // 1: small / 2: big
 
+#define ENABLE_IFACE
+//#define ENABLE_OTA
 
 void setup() {
   LOGSETUP();
+
+  // LED / BTN
+  #ifdef ENABLE_IFACE
+    iface_setup();  
+  #endif
 
   settings_setup();
 
@@ -21,7 +29,9 @@ void setup() {
   wifiman_manual("kxkm24nano", NULL);
 
   // OTA
-  //ota_setup();
+  #ifdef ENABLE_OTA
+    ota_setup();
+  #endif
 
   // AUDIO ENGINE
   audio_setup();
@@ -29,12 +39,11 @@ void setup() {
   // INTERFACE ENGINE
   udp_setup();
 
-  // LED / BTN
-  iface_setup();
-
   LOGF2("Device Ready, id:%i, channel:%i\n",settings_id(),settings_ch());
 
-  iface_led(true);
+  #ifdef ENABLE_IFACE
+    iface_led(false);
+  #endif
 }
 
 void loop() {
@@ -48,10 +57,17 @@ void loop() {
   ESP.wdtFeed();
 
   // LED / BTN
-  iface_loop();
-  if (iface_btn() && !audio_running()) audio_play("/tone.mp3"); 
+  #ifdef ENABLE_IFACE
+    iface_loop();
+    if (iface_btn()) {
+      if (!audio_running()) audio_play("/tone.mp3"); 
+      iface_led(true);
+    }
+    else iface_led(false);
+  #endif
 
   // OTA
-  //ota_loop();
-
+  #ifdef ENABLE_OTA
+    ota_loop();
+  #endif
 }
