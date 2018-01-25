@@ -28,7 +28,9 @@ ESPserver.on('newnode', function(node) {
 function display() {
   Utils.cls()
   console.log("ESP-controller".bold)
-  console.log("Broadcasting on "+ESPserver.broadcastIP)
+  var br = "Broadcasting on "+ESPserver.broadcastIP
+  if (ESPserver.broadcastIP.startsWith('2.0')) console.log(br.green)
+  else console.log(br.red)
   console.log()
 
   for (var i=1; i<=16; i++) {
