@@ -27,8 +27,15 @@ class MidiInterface {
 
       // loop
       if (msg.controller == 1) that.ESPserver.channel((msg.channel+1)).loop( (msg.value > 63) )
+
+      // volume
       else if (msg.controller == 7) that.ESPserver.channel((msg.channel+1)).volume( msg.value )
-      
+
+      // stop all
+      else if (msg.controller == 119) {
+        that.ESPserver.broadcast('/all/stop')
+        for (var i=1; i<=16; i++) that.ESPserver.channel(i).stop()
+      }
     });
 
     // NoteOFF :: STOP
