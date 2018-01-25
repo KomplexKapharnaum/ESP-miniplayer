@@ -33,9 +33,11 @@ function display() {
   else console.log(br.red)
   console.log()
 
+  var noDevices = true
   for (var i=1; i<=16; i++) {
     var nodes = ESPserver.getNodesByChannel(i)
     if (nodes.length > 0) {
+      noDevices = false
       var c = ("Channel "+i).bold+"\n"
       c += " "+("bank: "+ESPserver.channel(i).bankDir).blue
       c += " / "+("loop: "+ESPserver.channel(i).doLoop).cyan
@@ -63,7 +65,12 @@ function display() {
     }
   }
 
-  console.log('Last send: ',ESPserver.lastSend)
+  if (noDevices) {
+    console.log("No device detected...".bold)
+    console.log("you might be on the wrong network !".red)
+    console.log("If you do change the network, please restart the plugin.")
+  }
+  else console.log('Last send: ',ESPserver.lastSend)
 }
 
 setInterval(display, 500)
