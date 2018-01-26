@@ -169,7 +169,7 @@ class Channel {
     this.doLoop = false
     this.doNoteOff = true
     this.bankDir = 1
-    this.volumeCh = 100
+    this.volumeCh = 127
     this.velocity = 100
 
     this.sendGain = debounce(()=> {
