@@ -28,6 +28,9 @@ class MidiInterface {
       // loop
       if (msg.controller == 1) that.ESPserver.channel((msg.channel+1)).loop( (msg.value > 63) )
 
+      // noteOFF enable
+      if (msg.controller == 2) that.ESPserver.channel((msg.channel+1)).noteOffStop( (msg.value > 63) )
+
       // volume
       else if (msg.controller == 7) that.ESPserver.channel((msg.channel+1)).volume( msg.value )
 
@@ -40,7 +43,8 @@ class MidiInterface {
 
     // NoteOFF :: STOP
     this.MidiIN.on('noteoff', (msg) => {
-      //that.ESPserver.channel((msg.channel+1)).stop()
+      if (that.ESPserver.channel((msg.channel+1)).noteOffStop())
+        that.ESPserver.channel((msg.channel+1)).stop()
     });
 
     // Teleco

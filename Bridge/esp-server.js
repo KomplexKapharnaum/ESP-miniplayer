@@ -167,6 +167,7 @@ class Channel {
 
     this.media = 0
     this.doLoop = false
+    this.doNoteOff = true
     this.bankDir = 1
     this.volumeCh = 100
     this.velocity = 100
@@ -201,6 +202,13 @@ class Channel {
       else this.send("/loop/0")
     }
     return this.doLoop
+  }
+
+  noteOffStop(doO) {
+    if (doO !== undefined) {
+      this.doNoteOff = doO
+    }
+    return this.doNoteOff
   }
 
   bank(b) {
