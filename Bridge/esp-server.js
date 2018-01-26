@@ -225,7 +225,8 @@ class Channel {
   }
 
   gain() {
-    return Math.round(this.volumeCh*this.velocity/100.0)
+    // CONVERT 0->127 x 0->127 into 0->100
+    return Math.round((this.volumeCh*this.velocity*100)/16129)
   }
 
 }

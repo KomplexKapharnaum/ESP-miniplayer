@@ -12,6 +12,7 @@
     => allow Name files 002-*
     => Store date / size hash ?
 
+- WAV vs MP3 quality ?
 
 
 ## DEVICES

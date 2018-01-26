@@ -7,8 +7,8 @@
 // HARD CONFIG (comment once it has been done !)
 //
 // #define NODE_ID 7
-//#define NODE_CH 7
-//#define NODE_SPEAKER 1  // 1: small / 2: big
+// #define NODE_CH 7
+#define GAIN_HARD 0.2  // baseline 127 x 127 => 100% = 0.2
 
 //
 // SOFT CONFIG

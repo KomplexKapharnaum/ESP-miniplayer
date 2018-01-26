@@ -1,7 +1,7 @@
 #include <EEPROM.h>
 byte nodeID;
 byte nodeCH;
-byte nodeSPEAKER;
+float nodeGAIN;
 
 void settings_setup() {
   
@@ -18,18 +18,26 @@ void settings_setup() {
   #endif
 
   // NODE SPEAKER
-  #ifdef NODE_SPEAKER
-    EEPROM.write(2, NODE_SPEAKER);
+  #ifdef GAIN_HARD
+    EEPROM.write(2, GAIN_HARD);
   #endif
 
   nodeID = EEPROM.read(0);
   nodeCH = EEPROM.read(1);
-  nodeSPEAKER = EEPROM.read(2);
+  nodeGAIN = EEPROM.read(2);
   EEPROM.end();
 }
 
-byte settings_speaker() {
-  return nodeSPEAKER;
+float settings_gain() {
+  return nodeGAIN;
+}
+
+void settings_gainset(float g) {
+  EEPROM.begin(128);
+  EEPROM.write(2, g);
+  EEPROM.end();
+
+  nodeGAIN = g;
 }
 
 byte settings_id() {

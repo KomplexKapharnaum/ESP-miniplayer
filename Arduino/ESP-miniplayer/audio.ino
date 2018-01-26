@@ -12,8 +12,6 @@ bool loopMedia = false;
 bool sdOK = false;
 String errorPlayer = "";
 
-float GAIN_BASE = 0.1;
-
 void audio_setup()
 { 
   // CS / SS  GPIO for SD module
@@ -24,18 +22,11 @@ void audio_setup()
     LOG("SD card OK");
     sdOK = true;
   }
-
-  if (settings_speaker() == 1) {
-    GAIN_BASE = 0.2;
-  }
-  else if (settings_speaker() == 2) {
-    GAIN_BASE = 0.15;
-  }
   
   out = new AudioOutputI2SDAC();
   //out->SetBitsPerSample(16);
   //out->SetRate(44100);
-  out->SetGain(GAIN_BASE);  
+  out->SetGain( settings_gain() );  
 
   mp3 = new AudioGeneratorMP3();
 }
@@ -69,7 +60,7 @@ void audio_stop()
 
 void audio_volume(int vol) 
 {
-  float v = vol * GAIN_BASE / 100.0;
+  float v = vol * settings_gain() / 100.0;
   out->SetGain(v);
   LOGF("gain: %f\n", v);  
 }
