@@ -1,19 +1,19 @@
 #include <Arduino.h>
 #include "debug.h"
 
-#define VERSION_I 0.28
+#define VERSION_I 0.30
 
 //
 // HARD CONFIG (comment once it has been done !)
 //
-// #define NODE_ID 7
-// #define NODE_CH 7
-#define GAIN_HARD 0.2  // baseline 127 x 127 => 100% = 0.2
+#define NODE_ID 7
+#define NODE_CH 7
+#define GAIN_HARD 20  // volume FULL = 20%
 
 //
 // SOFT CONFIG
 //
-#define ENABLE_BTNLED
+//#define ENABLE_BTNLED
 #define ENABLE_OTA
 
 void setup() {
@@ -27,9 +27,7 @@ void setup() {
   settings_setup();
 
   // WIFI ENGINE
-  //wifiman_auto();
-  //wifiman_manual("kxkm-wifi", "KOMPLEXKAPHARNAUM");
-  wifiman_manual("kxkm24nano", NULL);
+  wifiman_manual("interweb", "superspeed37");
 
   // OTA
   #ifdef ENABLE_OTA
@@ -53,11 +51,11 @@ void loop() {
   
   // AUDIO ENGINE
   audio_loop();
-  ESP.wdtFeed();
+  yield();
 
   // INTERFACE ENGINE
   udp_loop();
-  ESP.wdtFeed();
+  yield();
 
   // LED / BTN
   #ifdef ENABLE_BTNLED
