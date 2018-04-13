@@ -8,23 +8,6 @@ const ESPlib = require('./esp-server.js')
 var ESPserver = new ESPlib.Server()
 
 
-// Event: when a new node is detected
-ESPserver.on('newnode', function(node) {
-
-  // Event: when the node goes online
-  //node.on('online', function(node){ console.log('online '+this.ip, this.info) });
-
-  // Event: when the node goes offline
-  //node.on('offline', function(node){ console.log('offline '+this.ip+' '+this.info.id) });
-
-  // Event: when the node stop
-  //node.on('stop', function(node){ console.log('stop '+this.ip+' '+this.info.id) });
-
-  // Event: when info
-  //node.on('updated', function(node){ console.log('received ',this.info) });
-
-});
-
 function display() {
   Utils.cls()
   console.log("ESP-controller".bold)
@@ -79,14 +62,10 @@ function display() {
 const MidiBridge = require('./midi-bridge.js')
 var MIDIiface = new MidiBridge.MidiInterface(ESPserver);
 
-
-
 // File Server for sync
 const glob = require("glob")
 const fs = require("fs")
 const http = require('http')
-const onFinished = require('on-finished')
-const destroy = require('destroy')
 const port = 3742
 
 Number.prototype.pad = function(size) {
@@ -122,10 +101,6 @@ const requestHandler = (request, response) => {
 			console.log("Serving "+path);
 			// We replaced all the event handlers with a simple call to readStream.pipe()
 			readStream.pipe(response);
-      onFinished(response, function () {
-        destroy(readStream)
-        console.log('done.')
-      })
 		}
 		else response.end();
 
@@ -181,26 +156,47 @@ server.listen(port, (err) => {
   console.log(`server is listening on ${port}`)
 })
 
-/*
-
-var express = require('express');
-var app = express();
-var port = process.env.PORT || 3742;
-
-app.post('/info', function(req, res) {
-    console.log(req.body);
-
-    res.send(0);
-});
-
-
-app.listen(port);
-console.log('File Server started!');*/
-
 
 // Start web interface
 const WEBlib = require('./web-server.js')
 var WEBserver = new WEBlib.Server(8088, ESPserver)
+
+// Electron interface
+const {app, BrowserWindow} = require('electron')
+const path = require('path')
+const url = require('url')
+let win
+function createWindow () {
+    // Create the browser window.
+    win = new BrowserWindow({width: 1200, height: 815})
+
+    // and load the index.html of the app.
+    win.loadURL(url.format({
+      pathname: 'localhost:8088/',
+      protocol: 'http:',
+      slashes: true
+    }))
+
+    // Open the DevTools.
+    //win.webContents.openDevTools()
+
+    // Emitted when the window is closed.
+    win.on('closed', () => {
+      // Dereference the window object, usually you would store windows
+      // in an array if your app supports multi windows, this is the time
+      // when you should delete the corresponding element.
+      win = null
+    })
+  }
+
+  app.on('ready', createWindow)
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
+  })
+  app.on('activate', () => {
+    if (win === null) createWindow()
+  })
+
 
 // Start server
 ESPserver.start();

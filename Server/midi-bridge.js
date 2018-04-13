@@ -9,8 +9,9 @@ class MidiInterface {
     var that = this
     this.ESPserver = ESPserver
 
-    if (isLinux) this.MidiIN = new Emidi.Input('Virtual Raw MIDI 0-0 16:0');
-    else this.MidiIN = new Emidi.Input('ESP-miniplayers', true);
+    //if (isLinux) this.MidiIN = new Emidi.Input('Virtual Raw MIDI 0-0 16:0');
+    // else 
+    this.MidiIN = new Emidi.Input('ESP-miniplayers', true);
 
     // console.log(Emidi.getInputs());
 

@@ -7,7 +7,7 @@
 
         <div class="blockfull server-info">
           <div class="header">KXKM // ESP-miniplayers</div>
-          <div class="content">
+          <div class="subheader">
             <div id="broadcastIP">connecting ..</div>
           </div>
         </div>
@@ -15,8 +15,15 @@
         <div id="channels-list">
         </div>
 
+        <!-- Insert this line above script imports  -->
+        <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+
         <script src="/jquery/dist/jquery.js"></script>
         <script src="/socket.io/socket.io.js"></script>
+
+        <!-- Insert this line after script imports -->
+        <script>if (window.module) module = window.module;</script>
+
         <script>
 
         function pad(number, length) {
@@ -31,18 +38,24 @@
           if ($('.player-'+id).length) cli_blk = $('.player-'+id)
           else {
             var ch_cont = $('.channel-'+channel).find('.devices');
-            cli_blk = $('<div class="block player-'+id+'">').appendTo( ch_cont )
-            $('<div class="header">').html("Player "+id).appendTo(cli_blk)
+            cli_blk = $('<div class="block player player-'+id+'">').appendTo( ch_cont )
+            if (id < 1000) {
+              $('<div class="header player-title">')
+                .append($('<span class="title">').html("Player "+id))
+                .appendTo(cli_blk)
+              $('<div class="subheader player-info">')
+                    .append($('<span class="ip">'))
+                    .appendTo(cli_blk).hide()
 
-            $('<div class="subheader player-info">')
-                  .append($('<span class="ip">'))
-                  .append($('<span class="version">'))
-                  .appendTo(cli_blk)
-
-            $('<div class="subheader player-state">')
-                  .append($('<span class="link">').html("link"))
-                  .append($('<span class="sd">').html("sdcard"))
-                  .appendTo(cli_blk)
+              $('<div class="subheader player-state">')
+                    .append($('<span class="link">').html("link"))
+                    .append($('<span class="sd">').html("sdcard"))
+                    .append($('<span class="version">'))
+                    .appendTo(cli_blk)
+            }
+            else $('<div class="header">')
+                    .append($('<span class="title">').html("Emulator"))
+                    .appendTo(cli_blk)
 
             $('<div class="subheader player-media">').appendTo(cli_blk)
             $('<div class="subheader player-error">').addClass('red').appendTo(cli_blk)
@@ -63,14 +76,14 @@
 
           // Info
           cli_blk.find(".player-info").find('.ip').html(cli['ip'])
-          cli_blk.find(".player-info").find('.version').html("v"+cli['info']['version'])
 
           // State
           cli_blk.find(".player-state").find('.link').removeClass('red green').addClass(cli['info']['link']?"green":"red")
           cli_blk.find(".player-state").find('.sd').removeClass('red green').addClass(cli['info']['sd']?"green":"red")
+          cli_blk.find(".player-state").find('.version').html("v"+cli['info']['version'])
 
           // Media & error
-          cli_blk.find(".player-media").html(cli['info']['media']).removeClass('red green').addClass(cli['info']['media']=='stop'?"red":"green")
+          cli_blk.find(".player-media").html(cli['info']['media']).removeClass('red yellow').addClass(cli['info']['media']=='stop'?"red":"yellow")
           cli_blk.find(".player-error").html(cli['info']['error'])
         }
 
@@ -80,21 +93,20 @@
           if ($('.channel-'+nchan).length) ch_blk = $('.channel-'+nchan)
           else {
             ch_blk = $('<div class="blockfull channel-'+nchan+'">').appendTo( $('#channels-list') )
-              $('<div class="header">').html("Channel "+nchan).appendTo(ch_blk)
-              $('<div class="subheader bank">').appendTo(ch_blk)
-              $('<div class="subheader loop">').appendTo(ch_blk)
-              $('<div class="subheader cmd">').appendTo(ch_blk)
+            var ch_ctrl = $('<div class="channel">').appendTo(ch_blk)
+              $('<div class="header">').html(" "+nchan).appendTo(ch_ctrl)
+              $('<div class="subheader bank">').appendTo(ch_ctrl)
+              // $('<div class="subheader loop">').appendTo(ch_ctrl)
+              $('<div class="subheader cmd">').appendTo(ch_ctrl)
               $('<div class="player-tools">')
-                .append( $('<button>test</button>').on('click', function() {socket.emit('channel.test', this.nchan)}.bind({nchan:nchan}) ))
-                .append( $('<button>stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
-                .append( $('<button>loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
-                .appendTo(ch_blk)
-
-              $('<div class="devices">').appendTo(ch_blk)
-
-              $('<div class="add">')
+                .append( $('<button class="testbtn">test</button>').on('click', function() {socket.emit('channel.test', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="loopbtn">loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button>+</button>').on('click', function() {socket.emit('channel.add', this.nchan)}.bind({nchan:nchan}) ))
-                .appendTo(ch_blk)
+                .appendTo(ch_ctrl)
+
+            $('<div class="devices">').appendTo(ch_blk)
+
 
           }
           return ch_blk;
@@ -103,8 +115,10 @@
         function updateChannel(data) {
           var ch_blk = getChannel(data['channel'])
           ch_blk.find('.bank').html("BANK: "+pad(data['bank'],3))
-          ch_blk.find('.loop').html("LOOP: "+data['loop'])
+          // ch_blk.find('.loop').html("LOOP: "+data['loop'])
           ch_blk.find('.cmd').html("CMD: "+data['cmd'])
+
+          ch_blk.find('.loopbtn').removeClass('green').addClass(data['loop']?'green':'')
         }
 
          var socket = io.connect('http://127.0.0.1:8088');

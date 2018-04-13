@@ -2,23 +2,65 @@ body {
   background: black;
   color: white;
   font-family: sans-serif;
+  font-size: 14px;
+
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
 }
 
-.blockfull, .block {
-  border: 1px solid #555;
-  padding: 5px;
-  margin: 5px;
+.blockfull {
+  border: 1px solid #333;
+  margin: 7px 4px;
   display: inline-block;
   vertical-align: top;
+  width: 379px;
+}
+
+.channel, .server-info {
+  padding: 7px 5px;
+}
+
+.channel .header {
+  margin-bottom: 3px;
+  background: #8c8c8c;
+  color: black;
+  padding: 1px 2px;
+  font-weight: bold;
+  width: 117px;
+}
+
+.server-info {
+  width: 50%;
+}
+
+.devices, .channel {
+  display: inline-block;
+}
+
+.devices {
+  vertical-align: top;
+  margin-left: 10px;
+  margin-top: 7px;
+  margin-bottom: 7px;
+  max-width: 215px;
+}
+
+.player {
+  margin: 2px;
+  width: 90px;
 }
 
 .block {
   display: inline-block;
+  padding: 5px;
+  border: 1px solid #555;
 }
 
-.header {
-  margin-bottom: 3px;
-}
 
 .subheader {
   font-size: 0.8em;
@@ -32,19 +74,38 @@ body {
   margin-top: 5px;
 }
 
+.player-media {
+  margin-top: 5px;
+  font-size: 0.9em;
+}
+
 button  {
   background: black;
   color: white;
+  margin-left: 2px;
+  border-width: thin;
 }
+
+button:focus {outline:0;}
 
 .green {
   color: green;
+  border-color: green;
 }
 
 .red {
   color: red;
+  border-color: red;
 }
 
 .yellow {
   color: yellow;
+  border-color: yellow;
+  animation: blinker 1s linear infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
 }
