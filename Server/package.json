@@ -9,10 +9,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "audio-play": "^2.2.0",
     "colors": "^1.1.2",
     "debounce": "^1.1.0",
     "easymidi": "0.0.4",
+    "eventemitter2": "^5.0.1",
+    "get-port": "^3.2.0",
+    "glob": "^7.1.2",
     "ip": "^1.1.5",
-    "osc": "^2.2.0"
+    "jquery": "^3.3.1",
+    "mplayer": "^2.1.0",
+    "osc": "^2.2.0",
+    "player": "^0.6.1"
   }
 }

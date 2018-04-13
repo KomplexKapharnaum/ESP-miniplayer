@@ -1,0 +1,50 @@
+body {
+  background: black;
+  color: white;
+  font-family: sans-serif;
+}
+
+.blockfull, .block {
+  border: 1px solid #555;
+  padding: 5px;
+  margin: 5px;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.block {
+  display: inline-block;
+}
+
+.header {
+  margin-bottom: 3px;
+}
+
+.subheader {
+  font-size: 0.8em;
+}
+
+.subheader span {
+  margin-right: 5px;
+}
+
+.player-tools, .content {
+  margin-top: 5px;
+}
+
+button  {
+  background: black;
+  color: white;
+}
+
+.green {
+  color: green;
+}
+
+.red {
+  color: red;
+}
+
+.yellow {
+  color: yellow;
+}

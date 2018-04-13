@@ -1,11 +1,17 @@
 var dgram = require('dgram');
 const os = require('os');
 const ip = require('ip');
-const EventEmitter = require('events');
+// const EventEmitter = require('events');
+const EventEmitter = require('eventemitter2').EventEmitter2
 const crypto = require('crypto')
 var debounce = require('debounce')
 
-const OSC = require('osc');
+
+const Player = require('player')
+const MPlayer = require('mplayer');
+
+const OSC = require('osc')
+const getPort = require('get-port');
 
 var PORT_SERVER = 12000;          // Working UDP port
 
@@ -25,7 +31,7 @@ function pad(number, length) {
 
 class Worker extends EventEmitter {
   constructor() {
-    super();
+    super({wildcard:true});
 
     this.isRunning  = false;
     this.timer      = null;
@@ -80,7 +86,7 @@ class Worker extends EventEmitter {
 
 class Client extends EventEmitter {
   constructor(ip, info) {
-    super();
+    super({wildcard:true});
     var that = this;
 
     this.ip = ip;
@@ -109,6 +115,7 @@ class Client extends EventEmitter {
 
   update(ip, info) {
 
+    var didChange = (this.ip != ip) || (JSON.stringify(this.info) != JSON.stringify(info))
     // re-store info
     this.ip = ip;
     this.info = info
@@ -121,7 +128,7 @@ class Client extends EventEmitter {
     this.noNews = 0;
 
     // inform data received
-    this.emit('updated');
+    this.emit('updated', didChange);
   }
 
   check( ticksOffline, ticksGone) {
@@ -133,29 +140,21 @@ class Client extends EventEmitter {
       this.emit('offline');
     }
     if (this.noNews == ticksGone) this.stop();
-
   }
 
-  send() {
-    var that = this;
-    if (this.udp == null) this.udp = dgram.createSocket('udp4');
-    if (this.payload != null)
-      this.udp.send(this.payload, 0, this.payload.length, this.port, this.ip, function(err, bytes) {
-          if (err) {
-            if (err.code == 'ENETUNREACH' || err.code == 'EADDRNOTAVAIL') {
-              console.log('\nWarning: the server lost connection to the network');
-              that.stop();
-            }
-            else throw err;
-          }
-          else that.emit('sent', this.payload);
-      });
+  getSnapshot() {
+    return {
+      'state': this.state,
+      'info': this.info,
+      'ip': this.ip
+    }
   }
 
 }
 
-class Channel {
+class Channel extends EventEmitter {
   constructor(serv, num) {
+    super({wildcard:true});
     var that = this;
 
     this.num = num
@@ -166,11 +165,12 @@ class Channel {
     else this.chan += num
 
     this.media = 0
-    this.doLoop = false
+    this.doLoop = true
     this.doNoteOff = true
     this.bankDir = 1
     this.volumeCh = 127
     this.velocity = 100
+    this.lastSend = ""
 
     this.sendGain = debounce(()=> {
       this.send("/volume/"+that.gain())
@@ -180,6 +180,8 @@ class Channel {
 
   send(message) {
     this.server.broadcast("/"+this.chan+message)
+    this.lastSend = message
+    this.emit('send', message)
   }
 
   play(media, velocity) {
@@ -188,6 +190,12 @@ class Channel {
 
     this.media = media
     this.send('/play/'+pad(this.bankDir, 3)+'/'+pad(this.media, 3)+'/'+this.gain())
+  }
+
+  playtest() {
+    this.velocity = 100
+    this.media = 'test'
+    this.send('/playtest')
   }
 
   stop() {
@@ -200,8 +208,13 @@ class Channel {
       this.doLoop = doL
       if (this.doLoop) this.send("/loop/1")
       else this.send("/loop/0")
+      this.emit('loop', this.doLoop)
     }
     return this.doLoop
+  }
+
+  switchLoop() {
+    this.loop( !this.loop() )
   }
 
   noteOffStop(doO) {
@@ -212,7 +225,10 @@ class Channel {
   }
 
   bank(b) {
-    if (b !== undefined) this.bankDir = b
+    if (b !== undefined) {
+      this.bankDir = b
+      this.emit('bank', b)
+    }
     return this.bankDir
   }
 
@@ -220,6 +236,7 @@ class Channel {
     if (v !== undefined && v != this.volumeCh) {
       this.volumeCh = v
       this.sendGain();
+      this.emit('volume', volume)
     }
     return this.volumeCh
   }
@@ -227,6 +244,24 @@ class Channel {
   gain() {
     // CONVERT 0->127 x 0->127 into 0->100
     return Math.round((this.volumeCh*this.velocity*100)/16129)
+  }
+
+  getSnapshot(withClients) {
+    var snapshot = {
+      'channel': this.num,
+      'bank': this.bankDir,
+      'loop': this.doLoop,
+      'cmd': this.lastSend
+    }
+    if (withClients === undefined) withClients = true
+
+    // clients info
+    if (withClients) {
+      snapshot['clients'] = []
+      for (var node of this.server.getNodesByChannel(this.num) )
+        snapshot['clients'].push(node.getSnapshot())
+    }
+    return snapshot
   }
 
 }
@@ -237,9 +272,14 @@ class Server extends Worker {
     var that = this;
 
     this.channels = []
-    for (var i=1; i<=16; i++) this.channels[i] = new Channel(this, i)
+    for (var i=1; i<=16; i++) {
+      this.channels[i] = new Channel(this, i)
+      this.channels[i].onAny( function(e,v){that.emit('channel.'+e, this.i, v) }.bind( {i: i} ))
+    }
 
     this.clients = {};
+    this.virtualDevices = [];
+    this.virtualId = 1000;
     this.lastSend = "";
 
     this.on('start', function() {
@@ -312,11 +352,15 @@ class Server extends Worker {
       if (that.clients[id] == null) {
         that.clients[id] = new Client(ip, info);
         that.emit('newnode', that.clients[id]);
+        that.clients[id].onAny((e,v) => {that.emit('client.'+e, id, v) })
         // console.log(ip, info)
       }
 
       // Update client
       that.clients[id].update(ip, info);
+
+      // Send hello if nolink
+      if (!info.link) that.broadcast("/hello");
     });
 
   }
@@ -333,6 +377,8 @@ class Server extends Worker {
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 10)
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 15)
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 40)
+
+    for (var vDev of this.virtualDevices) vDev.command(oscmsg)
 
     this.lastSend = oscmsg
   }
@@ -361,6 +407,99 @@ class Server extends Worker {
     var nodes = [];
     for (var id in this.clients) nodes.push(this.clients[id]);
     return nodes;
+  }
+
+  getSnapshot() {
+    // ON CONNECT: send Snapshot
+    var snapshot = {'server': {}, 'channels':[]}
+
+    // server info
+    snapshot['server']['broadcastIP'] = this.broadcastIP
+
+    // channels info
+    for (var i=0; i<16; i++)
+      snapshot['channels'][i] = this.channel(i+1).getSnapshot()
+
+    return snapshot
+  }
+
+  createVirtualDevice(channel) {
+    this.virtualId += 1
+    this.virtualDevices.push( new Device( this.virtualId, channel) )
+  }
+}
+
+class Device extends Worker {
+  constructor(id, channel) {
+    super()
+    var that = this
+
+    this.id = id
+    this.channel = channel
+    this.media = ""
+    this.error = ""
+    this.doLoop = true
+
+    this.udpPort = null
+    this.player = new MPlayer();
+    this.player.on('stop', () => {
+      if (that.doLoop) that.audioplay(that.media);
+    });
+
+    this.on('start', function() {
+      getPort().then(port => {
+        // console.log("binding port", port)
+        that.udpPort = new OSC.UDPPort({
+            localPort: port,
+            remotePort: PORT_SERVER,
+            remoteAddress: '127.0.0.1'
+        })
+        that.udpPort.open()
+      })
+    })
+
+    this.on('stop', function() {
+      this.udpPort.close()
+    })
+
+    this.on('tick', function() {
+      var oscmsg = {address: '/iam/esp', args:[
+        that.id, 0, 0, that.channel, true, true, (that.media!="")?that.media:"stop", that.error
+      ]}
+      that.udpPort.send(oscmsg);
+    })
+
+    this.setRate(1000)
+    this.start()
+  }
+
+  command(cmd) {
+
+    var path = cmd['address'].split('/')
+    if (path[1] != 'esp') return
+    if (path[2] != 'manual' && path[2] == this.lastPacket) return
+    else this.lastPacket = path[2]
+    if (path[3] != 'all' && path[3] != 'c'+pad(this.channel,2) && path[3] != this.id) return
+
+    if (path[4] == 'stop') this.audiostop()
+    else if (path[4] == 'play') this.audioplay('/test.mp3', parseInt(path[7]))
+    else if (path[4] == 'playtest') this.audioplay('/test.mp3', 100)
+    else if (path[4] == 'volume') this.player.volume(parseInt(path[5]))
+    else if (path[4] == 'loop') this.doLoop = parseInt(path[5]) > 0
+
+  }
+
+  audioplay(media, volume) {
+    this.audiostop()
+    this.media = media
+    this.player.openFile('mp3'+media);
+    this.player.volume(volume)
+    this.player.play()
+  }
+
+  audiostop() {
+    this.player.stop()
+    this.media = ""
   }
 
 }

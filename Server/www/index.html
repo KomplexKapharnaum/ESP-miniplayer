@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+    <head>
+      <link rel="stylesheet" type="text/css" href="style.css">
+    </head>
+    <body>
+
+        <div class="blockfull server-info">
+          <div class="header">KXKM // ESP-miniplayers</div>
+          <div class="content">
+            <div id="broadcastIP">connecting ..</div>
+          </div>
+        </div>
+
+        <div id="channels-list">
+        </div>
+
+        <script src="/jquery/dist/jquery.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+
+        function pad(number, length) {
+            var str = '' + number;
+            while (str.length < length) str = '0' + str
+            return str
+        }
+
+        function getClient(id, channel) {
+          var cli_blk;
+          // Find or create
+          if ($('.player-'+id).length) cli_blk = $('.player-'+id)
+          else {
+            var ch_cont = $('.channel-'+channel).find('.devices');
+            cli_blk = $('<div class="block player-'+id+'">').appendTo( ch_cont )
+            $('<div class="header">').html("Player "+id).appendTo(cli_blk)
+
+            $('<div class="subheader player-info">')
+                  .append($('<span class="ip">'))
+                  .append($('<span class="version">'))
+                  .appendTo(cli_blk)
+
+            $('<div class="subheader player-state">')
+                  .append($('<span class="link">').html("link"))
+                  .append($('<span class="sd">').html("sdcard"))
+                  .appendTo(cli_blk)
+
+            $('<div class="subheader player-media">').appendTo(cli_blk)
+            $('<div class="subheader player-error">').addClass('red').appendTo(cli_blk)
+
+          }
+          return cli_blk;
+        }
+
+        function updateClient(cli) {
+          var cli_blk = getClient(cli['info']['id'], cli['info']['channel'])
+
+          // State
+          var state;
+          if (cli['state'] == 'online') state = 'green';
+          else if (cli['state'] == 'offline') state = 'yellow';
+          else state = 'red';
+          cli_blk.find(".header").removeClass('red green yellow').addClass(state)
+
+          // Info
+          cli_blk.find(".player-info").find('.ip').html(cli['ip'])
+          cli_blk.find(".player-info").find('.version').html("v"+cli['info']['version'])
+
+          // State
+          cli_blk.find(".player-state").find('.link').removeClass('red green').addClass(cli['info']['link']?"green":"red")
+          cli_blk.find(".player-state").find('.sd').removeClass('red green').addClass(cli['info']['sd']?"green":"red")
+
+          // Media & error
+          cli_blk.find(".player-media").html(cli['info']['media']).removeClass('red green').addClass(cli['info']['media']=='stop'?"red":"green")
+          cli_blk.find(".player-error").html(cli['info']['error'])
+        }
+
+        function getChannel(nchan) {
+          var ch_blk;
+          // Find or create
+          if ($('.channel-'+nchan).length) ch_blk = $('.channel-'+nchan)
+          else {
+            ch_blk = $('<div class="blockfull channel-'+nchan+'">').appendTo( $('#channels-list') )
+              $('<div class="header">').html("Channel "+nchan).appendTo(ch_blk)
+              $('<div class="subheader bank">').appendTo(ch_blk)
+              $('<div class="subheader loop">').appendTo(ch_blk)
+              $('<div class="subheader cmd">').appendTo(ch_blk)
+              $('<div class="player-tools">')
+                .append( $('<button>test</button>').on('click', function() {socket.emit('channel.test', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button>stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button>loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
+                .appendTo(ch_blk)
+
+              $('<div class="devices">').appendTo(ch_blk)
+
+              $('<div class="add">')
+                .append( $('<button>+</button>').on('click', function() {socket.emit('channel.add', this.nchan)}.bind({nchan:nchan}) ))
+                .appendTo(ch_blk)
+
+          }
+          return ch_blk;
+        }
+
+        function updateChannel(data) {
+          var ch_blk = getChannel(data['channel'])
+          ch_blk.find('.bank').html("BANK: "+pad(data['bank'],3))
+          ch_blk.find('.loop').html("LOOP: "+data['loop'])
+          ch_blk.find('.cmd').html("CMD: "+data['cmd'])
+        }
+
+         var socket = io.connect('http://127.0.0.1:8088');
+
+         socket.on('connect', (data) => {
+            socket.emit('join', 'Hello World');
+         });
+
+         socket.on('disconnect', () => {
+           $('#channels-list').empty()
+         })
+
+         socket.on('snapshot', (data) => {
+            // Server info
+            $('#broadcastIP').html( "Broadcasting on "+data['server']['broadcastIP'] )
+
+            //Channels
+            $('#channels-list').empty()
+            for (var chan of data['channels']) {
+              updateChannel(chan)
+              for (var cli of chan['clients']) updateClient(cli)
+            }
+         });
+
+         socket.on('updatecli', function(data) {
+            updateClient(data)
+         });
+
+         socket.on('updatechan', function(data) {
+           console.log(data)
+            updateChannel(data)
+         });
+
+        </script>
+    </body>
+</html>
