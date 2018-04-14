@@ -168,7 +168,7 @@ const url = require('url')
 let win
 function createWindow () {
     // Create the browser window.
-    win = new BrowserWindow({width: 1200, height: 815})
+    win = new BrowserWindow({width: 1590, height: 550})
 
     // and load the index.html of the app.
     win.loadURL(url.format({
@@ -196,6 +196,9 @@ function createWindow () {
   app.on('activate', () => {
     if (win === null) createWindow()
   })
+
+//const opn = require('opn');
+//opn('http://localhost:8088/');
 
 
 // Start server

@@ -129,6 +129,7 @@
 
          socket.on('disconnect', () => {
            $('#channels-list').empty()
+           $('#broadcastIP').html("Waiting for server..")
          })
 
          socket.on('snapshot', (data) => {

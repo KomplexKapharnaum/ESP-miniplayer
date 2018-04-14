@@ -271,6 +271,10 @@ class Server extends Worker {
     super();
     var that = this;
 
+    // Kill previous servers
+    const { spawnSync} = require('child_process');
+    const child = spawnSync('fuser', ['-k', PORT_SERVER+'/udp']);
+
     this.channels = []
     for (var i=1; i<=16; i++) {
       this.channels[i] = new Channel(this, i)
@@ -439,11 +443,13 @@ class Device extends Worker {
     this.media = ""
     this.error = ""
     this.doLoop = true
+    this.stopTrig = false
 
     this.udpPort = null
     this.player = new MPlayer();
     this.player.on('stop', () => {
-      if (that.doLoop) that.audioplay(that.media);
+      if (that.stopTrig) that.stopTrig = false
+      else if (that.doLoop) that.audioplay(that.media);
     });
 
     this.on('start', function() {
@@ -498,6 +504,7 @@ class Device extends Worker {
   }
 
   audiostop() {
+    this.stopTrig = true
     this.player.stop()
     this.media = ""
   }
