@@ -6,12 +6,16 @@ const EventEmitter = require('eventemitter2').EventEmitter2
 const crypto = require('crypto')
 var debounce = require('debounce')
 
-
-const Player = require('player')
 const MPlayer = require('mplayer');
+MPlayer.prototype.quit = function() {
+    this.player.cmd('quit');
+}
+MPlayer.prototype.loop = function(doLoop) {
+    this.player.cmd('set_property', ['loop', (doLoop?0:-1)])
+}
 
 const OSC = require('osc')
-const getPort = require('get-port');
+const getPort = require('get-port')
 
 var PORT_SERVER = 12000;          // Working UDP port
 
@@ -293,6 +297,7 @@ class Server extends Worker {
     this.on('stop', function() {
       this.udpPort.close();
       for (var id in that.clients) that.clients[id].stop();
+      for (var dev of that.virtualDevices) dev.stop();
     });
 
     this.on('tick', function() {
@@ -429,12 +434,12 @@ class Server extends Worker {
 
   createVirtualDevice(channel) {
     this.virtualId += 1
-    this.virtualDevices.push( new Device( this.virtualId, channel) )
+    this.virtualDevices.push( new Device( this.virtualId, channel, this.channel(channel).loop()) )
   }
 }
 
 class Device extends Worker {
-  constructor(id, channel) {
+  constructor(id, channel, doLoop) {
     super()
     var that = this
 
@@ -442,15 +447,12 @@ class Device extends Worker {
     this.channel = channel
     this.media = ""
     this.error = ""
-    this.doLoop = true
+    this.doLoop = doLoop
     this.stopTrig = false
 
     this.udpPort = null
-    this.player = new MPlayer();
-    this.player.on('stop', () => {
-      if (that.stopTrig) that.stopTrig = false
-      else if (that.doLoop) that.audioplay(that.media);
-    });
+    this.player = null
+    this.startCount = 0
 
     this.on('start', function() {
       getPort().then(port => {
@@ -462,10 +464,20 @@ class Device extends Worker {
         })
         that.udpPort.open()
       })
+
+      that.player = new MPlayer();
+      that.player.on('status', (st)=>that.status=st);
+      that.player.loop(that.doLoop)
+      that.player.on('stop', () => {
+        that.startCount -= 1
+        if (that.startCount == 0) that.media = ""
+      });
+
     })
 
     this.on('stop', function() {
       this.udpPort.close()
+      this.player.quit()
     })
 
     this.on('tick', function() {
@@ -488,23 +500,28 @@ class Device extends Worker {
     if (path[3] != 'all' && path[3] != 'c'+pad(this.channel,2) && path[3] != this.id) return
 
     if (path[4] == 'stop') this.audiostop()
-    else if (path[4] == 'play') this.audioplay('/test.mp3', parseInt(path[7]))
-    else if (path[4] == 'playtest') this.audioplay('/test.mp3', 100)
+    else if (path[4] == 'play') this.audioplay(
+          glob.sync("mp3/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3"),
+          parseInt(path[7]))
+    else if (path[4] == 'playtest') this.audioplay('/test2.mp3', 100)
     else if (path[4] == 'volume') this.player.volume(parseInt(path[5]))
-    else if (path[4] == 'loop') this.doLoop = parseInt(path[5]) > 0
+    else if (path[4] == 'loop') {
+      this.doLoop = parseInt(path[5]) > 0
+      this.player.loop(this.doLoop)
+    }
 
   }
 
-  audioplay(media, volume) {
-    this.audiostop()
+  audioplay(media, volume, skipStop) {
     this.media = media
     this.player.openFile('mp3'+media);
     this.player.volume(volume)
+    this.player.loop(this.doLoop)
     this.player.play()
+    this.startCount += 1
   }
 
   audiostop() {
-    this.stopTrig = true
     this.player.stop()
     this.media = ""
   }
