@@ -501,7 +501,7 @@ class Device extends Worker {
 
     if (path[4] == 'stop') this.audiostop()
     else if (path[4] == 'play') this.audioplay(
-          glob.sync("mp3/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3"),
+          glob.sync("../mp3/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3"),
           parseInt(path[7]))
     else if (path[4] == 'playtest') this.audioplay('/test2.mp3', 100)
     else if (path[4] == 'volume') this.player.volume(parseInt(path[5]))
@@ -514,7 +514,7 @@ class Device extends Worker {
 
   audioplay(media, volume, skipStop) {
     this.media = media
-    this.player.openFile('mp3'+media);
+    this.player.openFile('../mp3'+media);
     this.player.volume(volume)
     this.player.loop(this.doLoop)
     this.player.play()

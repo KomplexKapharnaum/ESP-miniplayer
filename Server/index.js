@@ -79,7 +79,7 @@ const requestHandler = (request, response) => {
 
   if (request.url == "/file") {
 
-	var path = 'mp3';
+	var path = '../mp3';
 
   	request.on('data', function (data) {
 		path += data;
@@ -123,7 +123,7 @@ const requestHandler = (request, response) => {
       var note = parseInt(body.split('/')[1])
 
       // search file
-      glob("mp3/"+bank.pad(3)+"/"+note.pad(3)+"*.mp3", function (er, files) {
+      glob("../mp3/"+bank.pad(3)+"/"+note.pad(3)+"*.mp3", function (er, files) {
 
         // answer
         var ans = ""+bank.pad(3)+" "+note.pad(3)
@@ -131,11 +131,11 @@ const requestHandler = (request, response) => {
         // file exist
         if (files.length > 0) {
         	ans += " "+fs.statSync(files[0]).size.pad(10)
-        	ans += " "+files[0].substring(3)
+        	ans += " "+files[0].substring(6)
         }
         else ans += " "+(0).pad(10)
 
-        // console.log(ans)
+        console.log(ans)
         response.end(ans)
     })
 
@@ -144,6 +144,35 @@ const requestHandler = (request, response) => {
 
   }
 
+  else if (request.url == "/listfiles") {
+
+  	var bank = '';
+
+    request.on('data', function (data) {
+      bank += data;
+      if (bank.length > 1e6)
+          request.connection.destroy();
+    });
+
+    request.on('end', function () {
+        var ans = ""
+        bank = parseInt(bank);
+
+        for (var note=0; note<128; note++)
+        {
+          ans += bank.pad(3)+" "+note.pad(3)+" "
+          var path = glob.sync("../mp3/"+bank.pad(3)+"/"+note.pad(3)+"*.mp3")
+          if (path.length > 0) ans += fs.statSync(path[0]).size.pad(10)+" "+path[0].substring(6)
+          else ans += (0).pad(10)+" "+"               "
+          ans += "\n"
+        }
+
+        console.log(ans)
+        response.end(ans)
+    })
+
+
+	}
 
 }
 
