@@ -117,6 +117,7 @@ void osc_beacon()
   msg.add(settings_get("channel"));
   msg.add(linkStatus);
   msg.add(audio_sdOK);
+  msg.add(sd_syncNbr());
   if (audio_currentFile != "") msg.add(audio_currentFile.c_str());
   else msg.add("stop");
   msg.add(audio_errorPlayer.c_str());

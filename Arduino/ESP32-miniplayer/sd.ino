@@ -282,3 +282,7 @@ void sd_fileCheck(String payload) {
 
 }
 
+int sd_syncNbr() {
+  return sd_syncCount;
+}
+

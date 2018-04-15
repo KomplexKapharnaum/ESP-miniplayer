@@ -50,6 +50,7 @@
               $('<div class="subheader player-state">')
                     .append($('<span class="link">').html("link"))
                     .append($('<span class="sd">').html("sdcard"))
+                    .append($('<span class="sync">').html("sync"))
                     .append($('<span class="version">'))
                     .appendTo(cli_blk)
             }
@@ -80,6 +81,7 @@
           // State
           cli_blk.find(".player-state").find('.link').removeClass('red green').addClass(cli['info']['link']?"green":"red")
           cli_blk.find(".player-state").find('.sd').removeClass('red green').addClass(cli['info']['sd']?"green":"red")
+          cli_blk.find(".player-state").find('.sync').html(cli['info']['sync']).removeClass('red yellow green').addClass(cli['info']['sync']?"green":"red")
           cli_blk.find(".player-state").find('.version').html("v"+cli['info']['version'])
 
           // Media & error

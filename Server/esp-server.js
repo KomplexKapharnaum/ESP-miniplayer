@@ -6,20 +6,14 @@ const EventEmitter = require('eventemitter2').EventEmitter2
 const crypto = require('crypto')
 var debounce = require('debounce')
 
-const MPlayer = require('mplayer');
-MPlayer.prototype.quit = function() {
-    this.player.cmd('quit');
-}
-MPlayer.prototype.loop = function(doLoop) {
-    this.player.cmd('set_property', ['loop', (doLoop?0:-1)])
-}
+const ESPemulator = require('./esp-emulator.js')
+const Worker = require('./utils.js').Worker
+const pad = require('./utils.js').pad
 
 const OSC = require('osc')
-const getPort = require('get-port')
 
 var PORT_SERVER = 12000;          // Working UDP port
 
-var TIME_TICK = 100;      // Watchdog timer ms
 var TIME_OFFLINE = 2000;  // Offline Time
 var TIME_GONE = 6000;     // Gone Time
 
@@ -27,66 +21,7 @@ function log(msg) {
   console.log(msg);
 }
 
-function pad(number, length) {
-    var str = '' + number;
-    while (str.length < length) str = '0' + str
-    return str
-}
 
-class Worker extends EventEmitter {
-  constructor() {
-    super({wildcard:true});
-
-    this.isRunning  = false;
-    this.timer      = null;
-    this.timerate   = TIME_TICK;
-    this.allowRateChange = true;
-  }
-
-  start() {
-    if (this.isRunning) this.stop();
-    this.isRunning  = true;
-    this.emit('start');
-    this.next();
-  }
-
-  next() {
-    var that = this;
-    this.timer = setTimeout( function() {
-      if (!that.isRunning) return;
-      that.emit('tick');
-      that.next();
-    }, that.timerate);
-  }
-
-  stop()  {
-    if (this.timer != null) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
-    this.isRunning  = false;
-    this.emit('stop');
-  }
-
-  setRate(tr) {
-    if (!this.allowRateChange) return;
-    this.timerate = Math.round(tr);
-    this.emit('fps', Math.round(100000/tr)/100);
-    //log('FPS: '+ Math.round(100000/tr)/100);
-    //this.timerate = 50;
-  }
-
-  lockRate(tr) {
-    this.allowRateChange = true;
-    this.setRate(tr);
-    this.allowRateChange = false;
-  }
-
-  unlockRate() {
-    this.allowRateChange = true;
-  }
-
-}
 
 class Client extends EventEmitter {
   constructor(ip, info) {
@@ -272,7 +207,7 @@ class Channel extends EventEmitter {
 
 class Server extends Worker {
   constructor() {
-    super();
+    super(100);
     var that = this;
 
     // Kill previous servers
@@ -351,8 +286,9 @@ class Server extends Worker {
         channel: message['args'][3],
         link: message['args'][4],
         sd: message['args'][5],
-        media: message['args'][6],
-        error: message['args'][7]
+        sync: message['args'][6],
+        media: message['args'][7],
+        error: message['args'][8]
       }
 
       var id = info['id'];
@@ -434,98 +370,8 @@ class Server extends Worker {
 
   createVirtualDevice(channel) {
     this.virtualId += 1
-    this.virtualDevices.push( new Device( this.virtualId, channel, this.channel(channel).loop()) )
+    this.virtualDevices.push( new ESPemulator.Device( this.virtualId, channel, this.channel(channel).loop(), PORT_SERVER) )
   }
-}
-
-class Device extends Worker {
-  constructor(id, channel, doLoop) {
-    super()
-    var that = this
-
-    this.id = id
-    this.channel = channel
-    this.media = ""
-    this.error = ""
-    this.doLoop = doLoop
-    this.stopTrig = false
-
-    this.udpPort = null
-    this.player = null
-    this.startCount = 0
-
-    this.on('start', function() {
-      getPort().then(port => {
-        // console.log("binding port", port)
-        that.udpPort = new OSC.UDPPort({
-            localPort: port,
-            remotePort: PORT_SERVER,
-            remoteAddress: '127.0.0.1'
-        })
-        that.udpPort.open()
-      })
-
-      that.player = new MPlayer();
-      that.player.on('status', (st)=>that.status=st);
-      that.player.loop(that.doLoop)
-      that.player.on('stop', () => {
-        that.startCount -= 1
-        if (that.startCount == 0) that.media = ""
-      });
-
-    })
-
-    this.on('stop', function() {
-      this.udpPort.close()
-      this.player.quit()
-    })
-
-    this.on('tick', function() {
-      var oscmsg = {address: '/iam/esp', args:[
-        that.id, 0, 0, that.channel, true, true, (that.media!="")?that.media:"stop", that.error
-      ]}
-      that.udpPort.send(oscmsg);
-    })
-
-    this.setRate(1000)
-    this.start()
-  }
-
-  command(cmd) {
-
-    var path = cmd['address'].split('/')
-    if (path[1] != 'esp') return
-    if (path[2] != 'manual' && path[2] == this.lastPacket) return
-    else this.lastPacket = path[2]
-    if (path[3] != 'all' && path[3] != 'c'+pad(this.channel,2) && path[3] != this.id) return
-
-    if (path[4] == 'stop') this.audiostop()
-    else if (path[4] == 'play') this.audioplay(
-          glob.sync("../mp3/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3"),
-          parseInt(path[7]))
-    else if (path[4] == 'playtest') this.audioplay('/test2.mp3', 100)
-    else if (path[4] == 'volume') this.player.volume(parseInt(path[5]))
-    else if (path[4] == 'loop') {
-      this.doLoop = parseInt(path[5]) > 0
-      this.player.loop(this.doLoop)
-    }
-
-  }
-
-  audioplay(media, volume, skipStop) {
-    this.media = media
-    this.player.openFile('../mp3'+media);
-    this.player.volume(volume)
-    this.player.loop(this.doLoop)
-    this.player.play()
-    this.startCount += 1
-  }
-
-  audiostop() {
-    this.player.stop()
-    this.media = ""
-  }
-
 }
 
 // Export as module

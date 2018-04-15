@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "audio-play": "^2.2.0",
+    "chokidar": "^2.0.3",
     "colors": "^1.2.1",
     "debounce": "^1.1.0",
     "easymidi": "0.0.4",

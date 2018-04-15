@@ -163,11 +163,11 @@ const requestHandler = (request, response) => {
           ans += bank.pad(3)+" "+note.pad(3)+" "
           var path = glob.sync("../mp3/"+bank.pad(3)+"/"+note.pad(3)+"*.mp3")
           if (path.length > 0) ans += fs.statSync(path[0]).size.pad(10)+" "+path[0].substring(6)
-          else ans += (0).pad(10)+" "+"               "
+          else ans += (0).pad(10) //+" "+"               "
           ans += "\n"
         }
 
-        console.log(ans)
+        // console.log(ans)
         response.end(ans)
     })
 
