@@ -208,6 +208,9 @@ void sd_syncTask(void * parameter) {
                   // get tcp stream
                   WiFiClient * stream = dlclient.getStreamPtr();
                   File myFile = SD.open(file, FILE_WRITE);
+                  
+                  uint32_t startTime = millis();
+                  
                   LOGINL("downloading ");
                   LOG(file);
 
@@ -242,6 +245,7 @@ void sd_syncTask(void * parameter) {
 
                   myFile.close();
                   LOG("100%");
+                  LOG("done: "+String(fsize/1024)+"kB in "+String((millis()-startTime)/1000)+"s -> "+String((fsize/1024)*1000/(millis()-startTime))+"kB/s");
                 }
               }
             }

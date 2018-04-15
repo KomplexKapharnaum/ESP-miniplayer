@@ -135,7 +135,7 @@ const requestHandler = (request, response) => {
         }
         else ans += " "+(0).pad(10)
 
-        console.log(ans)
+        // console.log(ans)
         response.end(ans)
     })
 
