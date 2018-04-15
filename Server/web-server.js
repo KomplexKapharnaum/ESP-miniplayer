@@ -1,8 +1,9 @@
 const EventEmitter = require('events');
 var express = require('express');
+var config = require('./config.js');
 
 class Server extends EventEmitter {
-  constructor(port, espserver) {
+  constructor(espserver) {
     super();
 
     var that = this
@@ -20,7 +21,7 @@ class Server extends EventEmitter {
         res.sendFile(__dirname + '/www/style.css');
     });
 
-    this.server.listen(8088);
+    this.server.listen(config.webremote.port);
 
     this.io.on('connection', function(client) {
       console.log('Client connected...');

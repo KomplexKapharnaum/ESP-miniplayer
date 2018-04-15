@@ -4,15 +4,16 @@ const ip = require('ip');
 // const EventEmitter = require('events');
 const EventEmitter = require('eventemitter2').EventEmitter2
 const crypto = require('crypto')
-var debounce = require('debounce')
+const glob = require("glob")
+const debounce = require('debounce')
+
+var config = require('./config.js');
 
 const ESPemulator = require('./esp-emulator.js')
 const Worker = require('./utils.js').Worker
 const pad = require('./utils.js').pad
 
 const OSC = require('osc')
-
-var PORT_SERVER = 12000;          // Working UDP port
 
 var TIME_OFFLINE = 2000;  // Offline Time
 var TIME_GONE = 6000;     // Gone Time
@@ -212,7 +213,7 @@ class Server extends Worker {
 
     // Kill previous servers
     const { spawnSync} = require('child_process');
-    const child = spawnSync('fuser', ['-k', PORT_SERVER+'/udp']);
+    const child = spawnSync('fuser', ['-k', config.espserver.port+'/udp']);
 
     this.channels = []
     for (var i=1; i<=16; i++) {
@@ -254,7 +255,7 @@ class Server extends Worker {
 
     this.udpPort = new OSC.UDPPort({
         localAddress: "0.0.0.0",
-        localPort: PORT_SERVER,
+        localPort: config.espserver.port,
         broadcast: true,
         remotePort: 10000,
         remoteAddress: this.broadcastIP
@@ -265,7 +266,7 @@ class Server extends Worker {
     });
 
     this.udpPort.on("ready", function () {
-        console.log('OSC Server listening on port ' + PORT_SERVER+ ' / broadcasting on '+this.broadcastIP);
+        console.log('OSC Server listening on port ' + config.espserver.port+ ' / broadcasting on '+this.broadcastIP);
     });
 
     this.udpPort.on("osc", function (message, remote) {
@@ -308,6 +309,9 @@ class Server extends Worker {
       if (!info.link) that.broadcast("/hello");
     });
 
+    // scan files
+    this.fileCount = glob.sync(config.basepath.mp3+'/*/*.mp3').length
+    console.log("Found "+this.fileCount+" mp3 files")
   }
 
   broadcast(message) {
@@ -360,6 +364,7 @@ class Server extends Worker {
 
     // server info
     snapshot['server']['broadcastIP'] = this.broadcastIP
+    snapshot['server']['fileCount'] = this.fileCount
 
     // channels info
     for (var i=0; i<16; i++)
@@ -370,7 +375,7 @@ class Server extends Worker {
 
   createVirtualDevice(channel) {
     this.virtualId += 1
-    this.virtualDevices.push( new ESPemulator.Device( this.virtualId, channel, this.channel(channel).loop(), PORT_SERVER) )
+    this.virtualDevices.push( new ESPemulator.Device( this.virtualId, channel, this.channel(channel).loop()) )
   }
 }
 

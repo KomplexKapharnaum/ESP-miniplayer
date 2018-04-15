@@ -1,5 +1,7 @@
+// Config
+var config = require('./config.js');
+
 // Utils
-var colors = require('colors')
 const Utils = require('./utils.js')
 Utils.cls()
 
@@ -7,66 +9,20 @@ Utils.cls()
 const ESPlib = require('./esp-server.js')
 var ESPserver = new ESPlib.Server()
 
-
-function display() {
-  Utils.cls()
-  console.log("ESP-controller".bold)
-  var br = "Broadcasting on "+ESPserver.broadcastIP
-  if (ESPserver.broadcastIP.startsWith('2.0')) console.log(br.green)
-  else console.log(br.red)
-  console.log()
-
-  var noDevices = true
-  for (var i=1; i<=16; i++) {
-    var nodes = ESPserver.getNodesByChannel(i)
-    if (nodes.length > 0) {
-      noDevices = false
-      var c = ("Channel "+i).bold+"\n"
-      c += " "+("bank: "+ESPserver.channel(i).bankDir).blue
-      c += " / "+("loop: "+ESPserver.channel(i).doLoop).cyan
-      console.log(c)
-
-
-      for (var k in nodes) {
-        var n = " "+nodes[k].ip+" - "+nodes[k].state;
-
-        if (nodes[k].state == "online") n = n.green
-        else if (nodes[k].state == "offline") n = n.yellow
-        else n = n.red
-
-        n += " - version: "+nodes[k].info.version
-        n += " - link: "+nodes[k].info.link
-        n += " - sd: "+(nodes[k].info.sd ? "OK": "ERROR")
-        n += " - media: "+nodes[k].info.media
-        if (nodes[k].info.error != "") n += " - error: "+nodes[k].info.error
-
-
-
-        console.log(n)
-      }
-      console.log()
-    }
-  }
-
-  if (noDevices) {
-    console.log("No device detected...".bold)
-    console.log("you might be on the wrong network !".red)
-    console.log("If you do change the network, please restart the plugin.")
-  }
-  else console.log('Last send: ',ESPserver.lastSend)
-}
-
-//setInterval(display, 500)
+// Console display
+//setInterval(()=>Utils.consoledisp(ESPserver), 500)
 
 // Create MIDI iface
 const MidiBridge = require('./midi-bridge.js')
 var MIDIiface = new MidiBridge.MidiInterface(ESPserver);
 
-
+// Create file sync server
+const FileSync = require('./esp-fileserver.js')
+FileSync.start()
 
 // Start web interface
 const WEBlib = require('./web-server.js')
-var WEBserver = new WEBlib.Server(8088, ESPserver)
+var WEBserver = new WEBlib.Server(ESPserver)
 
 // Electron interface
 const {app, BrowserWindow} = require('electron')
@@ -79,7 +35,7 @@ function createWindow () {
 
     // and load the index.html of the app.
     win.loadURL(url.format({
-      pathname: 'localhost:8088/',
+      pathname: 'localhost:'+config.webremote.port+'/',
       protocol: 'http:',
       slashes: true
     }))

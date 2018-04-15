@@ -2,6 +2,7 @@ const Worker = require('./utils.js').Worker
 const getPort = require('get-port')
 const pad = require('./utils.js').pad
 const OSC = require('osc')
+var config = require('./config.js');
 const MPlayer = require('mplayer');
 MPlayer.prototype.quit = function() {
     this.player.cmd('quit');
@@ -11,7 +12,7 @@ MPlayer.prototype.loop = function(doLoop) {
 }
 
 class Device extends Worker {
-  constructor(id, channel, doLoop, serverPort) {
+  constructor(id, channel, doLoop) {
     super(1000)
     var that = this
 
@@ -23,7 +24,6 @@ class Device extends Worker {
     this.stopTrig = false
 
     this.udpPort = null
-    this.serverPort = serverPort
     this.player = null
     this.startCount = 0
 
@@ -32,7 +32,7 @@ class Device extends Worker {
         // console.log("binding port", port)
         that.udpPort = new OSC.UDPPort({
             localPort: port,
-            remotePort: that.serverPort,
+            remotePort: config.espserver.port,
             remoteAddress: '127.0.0.1'
         })
         that.udpPort.open()
@@ -74,7 +74,7 @@ class Device extends Worker {
 
     if (path[4] == 'stop') this.audiostop()
     else if (path[4] == 'play') this.audioplay(
-          glob.sync("../mp3/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3"),
+          glob.sync(config.basepath.mp3+"/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3"),
           parseInt(path[7]))
     else if (path[4] == 'playtest') this.audioplay('/test.mp3', 100)
     else if (path[4] == 'volume') this.player.volume(parseInt(path[5]))

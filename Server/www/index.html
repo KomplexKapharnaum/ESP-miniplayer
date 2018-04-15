@@ -40,6 +40,8 @@
             var ch_cont = $('.channel-'+channel).find('.devices');
             cli_blk = $('<div class="block player player-'+id+'">').appendTo( ch_cont )
             if (id < 1000) {
+              $('<div class="subheader player-version">').appendTo(cli_blk)
+
               $('<div class="header player-title">')
                 .append($('<span class="title">').html("Player "+id))
                 .appendTo(cli_blk)
@@ -50,7 +52,7 @@
               $('<div class="subheader player-state">')
                     .append($('<span class="link">').html("link"))
                     .append($('<span class="sd">').html("sdcard"))
-                    .append($('<span class="sync">').html("sync"))
+                    .append($('<span class="sync">').html("x").addClass("red"))
                     .append($('<span class="version">'))
                     .appendTo(cli_blk)
             }
@@ -74,6 +76,7 @@
           else if (cli['state'] == 'offline') state = 'yellow';
           else state = 'red';
           cli_blk.find(".header").removeClass('red green yellow').addClass(state)
+          cli_blk.find(".player-version").html("v"+cli['info']['version'])
 
           // Info
           cli_blk.find(".player-info").find('.ip').html(cli['ip'])
@@ -81,8 +84,13 @@
           // State
           cli_blk.find(".player-state").find('.link').removeClass('red green').addClass(cli['info']['link']?"green":"red")
           cli_blk.find(".player-state").find('.sd').removeClass('red green').addClass(cli['info']['sd']?"green":"red")
-          cli_blk.find(".player-state").find('.sync').html(cli['info']['sync']).removeClass('red yellow green').addClass(cli['info']['sync']?"green":"red")
-          cli_blk.find(".player-state").find('.version').html("v"+cli['info']['version'])
+          if (fileCount > 0) {
+            var syncProgress = Math.round(cli['info']['sync']*100/fileCount)
+            cli_blk.find(".player-state").find('.sync').html(syncProgress+"%").removeClass('red yellow green')
+            if (syncProgress == 0) cli_blk.find(".player-state").find('.sync').addClass("red")
+            else if (syncProgress < 100) cli_blk.find(".player-state").find('.sync').addClass("yellow")
+            else cli_blk.find(".player-state").find('.sync').addClass("green")
+          }
 
           // Media & error
           cli_blk.find(".player-media").html(cli['info']['media']).removeClass('red yellow').addClass(cli['info']['media']=='stop'?"red":"yellow")
@@ -123,6 +131,7 @@
           ch_blk.find('.loopbtn').removeClass('green').addClass(data['loop']?'green':'')
         }
 
+         var fileCount = 0
          var socket = io.connect('http://127.0.0.1:8088');
 
          socket.on('connect', (data) => {
@@ -137,6 +146,7 @@
          socket.on('snapshot', (data) => {
             // Server info
             $('#broadcastIP').html( "Broadcasting on "+data['server']['broadcastIP'] )
+            fileCount = data['server']['fileCount']
 
             //Channels
             $('#channels-list').empty()

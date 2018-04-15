@@ -79,6 +79,11 @@ body {
   font-size: 0.9em;
 }
 
+.player-version {
+  float: right;
+  font-size: 0.8em;
+}
+
 button  {
   background: black;
   color: white;

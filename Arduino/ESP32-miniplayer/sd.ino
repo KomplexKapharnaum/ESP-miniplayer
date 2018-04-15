@@ -122,6 +122,9 @@ bool sd_syncd = false;
 int sd_syncCount = 0;
 
 void sd_syncRemote() {
+  sd_syncd = false;
+  sd_syncCount = 0;
+  
   xTaskCreate(
     sd_syncTask2, /* Task function. */
     "Sync Task", /* name of task. */
