@@ -16,7 +16,7 @@ const pad = require('./utils.js').pad
 const OSC = require('osc')
 
 var TIME_OFFLINE = 2000;  // Offline Time
-var TIME_GONE = 6000;     // Gone Time
+var TIME_GONE = 4000;     // Gone Time
 
 function log(msg) {
   console.log(msg);
@@ -39,9 +39,18 @@ class Client extends EventEmitter {
     this.state = 'stop'
     this.loop = false;
 
-    this.on('stop', () => {this.state = 'stop'})
-    this.on('online', () => {this.state = 'online'})
-    this.on('offline', () => {this.state = 'offline'})
+    this.on('stop', () => {
+      this.state = 'stop'
+      this.emit('updated', true)
+    })
+    this.on('online', () => {
+      this.state = 'online'
+      this.emit('updated', true)
+    })
+    this.on('offline', () => {
+      this.state = 'offline'
+      this.emit('updated', true)
+    })
   }
 
   stop() {
@@ -111,6 +120,8 @@ class Channel extends EventEmitter {
     this.volumeCh = 127
     this.velocity = 100
     this.lastSend = ""
+
+    this.emulator = null
 
     this.sendGain = debounce(()=> {
       this.send("/volume/"+that.gain())
@@ -191,7 +202,8 @@ class Channel extends EventEmitter {
       'channel': this.num,
       'bank': this.bankDir,
       'loop': this.doLoop,
-      'cmd': this.lastSend
+      'cmd': this.lastSend,
+      'emul': (this.emulator != null)
     }
     if (withClients === undefined) withClients = true
 
@@ -204,6 +216,15 @@ class Channel extends EventEmitter {
     return snapshot
   }
 
+  switchEmulator() {
+    if (this.emulator == null) this.emulator = new ESPemulator.Device(this)
+    else {
+      this.emulator.stop()
+      this.emulator = null
+    }
+    this.emit('emul', (this.emulator == null))
+  }
+
 }
 
 class Server extends Worker {
@@ -213,7 +234,8 @@ class Server extends Worker {
 
     // Kill previous servers
     const { spawnSync} = require('child_process');
-    const child = spawnSync('fuser', ['-k', config.espserver.port+'/udp']);
+    spawnSync('fuser', ['-k', config.espserver.port+'/udp']);
+    spawnSync('fuser', ['-k', config.webremote.port+'/tcp']);
 
     this.channels = []
     for (var i=1; i<=16; i++) {
@@ -222,8 +244,6 @@ class Server extends Worker {
     }
 
     this.clients = {};
-    this.virtualDevices = [];
-    this.virtualId = 1000;
     this.lastSend = "";
 
     this.on('start', function() {
@@ -232,8 +252,8 @@ class Server extends Worker {
 
     this.on('stop', function() {
       this.udpPort.close();
-      for (var id in that.clients) that.clients[id].stop();
-      for (var dev of that.virtualDevices) dev.stop();
+      for (var cl in that.clients) that.clients[cl].stop();
+      for (var ch in that.channels) if (that.channels[ch].emulator) that.channels[ch].emulator.stop();
     });
 
     this.on('tick', function() {
@@ -327,7 +347,8 @@ class Server extends Worker {
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 15)
     setTimeout(() => {  this.udpPort.send(oscmsg); }, 40)
 
-    for (var vDev of this.virtualDevices) vDev.command(oscmsg)
+    for (var ch in this.channels)
+      if (this.channels[ch].emulator) this.channels[ch].emulator.command(oscmsg)
 
     this.lastSend = oscmsg
   }
@@ -371,11 +392,6 @@ class Server extends Worker {
       snapshot['channels'][i] = this.channel(i+1).getSnapshot()
 
     return snapshot
-  }
-
-  createVirtualDevice(channel) {
-    this.virtualId += 1
-    this.virtualDevices.push( new ESPemulator.Device( this.virtualId, channel, this.channel(channel).loop()) )
   }
 }
 

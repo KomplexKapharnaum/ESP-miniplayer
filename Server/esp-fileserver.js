@@ -1,10 +1,47 @@
 // File Server for sync
 const glob = require("glob")
 const fs = require("fs")
-const http = require('http')
 const pad = require('./utils.js').pad
-
 var config = require('./config.js');
+
+
+const express = require('express')
+const app = express()
+
+app.get('/', (req, res) => res.send('Hello World!'))
+
+app.get('/listbank/*', (req, res) => {
+  var ans = ""
+  bank = parseInt(req.params[0])
+  for (var note=0; note<128; note++)
+  {
+    ans += pad(bank,3)+" "+pad(note,3)+" "
+    var path = glob.sync(config.basepath.mp3+"/"+pad(bank,3)+"/"+pad(note,3)+"*.mp3")
+    if (path.length > 0) ans += pad(fs.statSync(path[0]).size,10)+" "+path[0].substring(config.basepath.mp3.length)
+    else ans += pad(0,10) //+" "+"               "
+    ans += "\n"
+  }
+  // console.log(ans)
+  res.send(ans)
+});
+
+app.get('/get/*', (req, res) => {
+  var path = "/home/mgr/Bakery/ESP-miniplayer/mp3/"+req.params[0]
+  if (fs.existsSync(path)) {
+    var stat = fs.statSync(path)
+    res.sendFile(path)
+  }
+  else
+  res.status(404).send("Sorry can't find that: "+path)
+});
+/*
+
+
+
+
+
+const http = require('http')
+
 
 Number.prototype.pad = function(size) {
     var s = String(this);
@@ -13,7 +50,31 @@ Number.prototype.pad = function(size) {
 }
 
 const requestHandler = (request, response) => {
-  //console.log(request.url)
+  // console.log(request.url)
+
+  if (request.url.startsWith("/get")) {
+    var file = request.url.split("/get")[1]
+    var path = config.basepath.mp3+file
+
+    if (fs.existsSync(path)) {
+      var stat = fs.statSync(path);
+
+      response.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': stat.size
+      });
+
+      var readStream = fs.createReadStream(path);
+
+      console.log("Serving "+path);
+      // We replaced all the event handlers with a simple call to readStream.pipe()
+      readStream.pipe(response);
+    }
+    else {
+      console.log("Can't find "+path)
+      response.end();
+    }
+  }
 
   if (request.url == "/file") {
 
@@ -115,12 +176,15 @@ const requestHandler = (request, response) => {
 }
 
 const server = http.createServer(requestHandler)
+*/
 
 exports.start = function() {
-    server.listen(config.filesync.port, (err) => {
+    /*server.listen(config.filesync.port, (err) => {
       if (err) {
         return console.log('FileSync: something bad happened', err)
       }
       console.log(`FileSync: server is listening on ${config.filesync.port}`)
-    })
+    })*/
+
+    app.listen(config.filesync.port, () => console.log('FileSync: server is listening on '+config.filesync.port))
   }

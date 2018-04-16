@@ -40,8 +40,8 @@ class Server extends EventEmitter {
       })
 
       // STOP
-      client.on('channel.add', function(chan) {
-          that.espserver.createVirtualDevice(chan)
+      client.on('channel.emul', function(chan) {
+          that.espserver.channel(chan).switchEmulator()
       })
 
       // LOOP
