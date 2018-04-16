@@ -48,6 +48,12 @@ class Server extends EventEmitter {
       client.on('channel.loop', function(chan) {
           that.espserver.channel(chan).switchLoop()
       })
+
+      // EMULATOR
+      client.on('emulator.stopped', function(id) {
+          var emul = that.espserver.emulator(id)
+          if (emul) emul.stopped()
+      })
     })
 
     // BIND CLIENT EVENTS
@@ -61,6 +67,11 @@ class Server extends EventEmitter {
       that.io.emit('updatechan', that.espserver.channel(id).getSnapshot(false))
     })
 
+    // BIND EMULATOR EVENTS
+    this.espserver.on('channel.emulator.action.*', function(channel, id, data) {
+      that.io.emit('emulator-'+id, {event: this.event.split('action.')[1], value:data})
+      // console.log('emulator-'+id, {event: this.event.split('action.')[1], value:data})
+    })
   }
 }
 

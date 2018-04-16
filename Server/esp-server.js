@@ -217,7 +217,13 @@ class Channel extends EventEmitter {
   }
 
   switchEmulator() {
-    if (this.emulator == null) this.emulator = new ESPemulator.Device(this)
+    if (this.emulator == null) {
+      var that = this;
+      this.emulator = new ESPemulator.Device(this)
+      this.emulator.onAny((e,v) => {
+        that.emit('emulator.'+e, that.emulator.id, v)
+      })
+    }
     else {
       this.emulator.stop()
       this.emulator = null
@@ -240,7 +246,7 @@ class Server extends Worker {
     this.channels = []
     for (var i=1; i<=16; i++) {
       this.channels[i] = new Channel(this, i)
-      this.channels[i].onAny( function(e,v){that.emit('channel.'+e, this.i, v) }.bind( {i: i} ))
+      this.channels[i].onAny( function(e,v,w){that.emit('channel.'+e, this.i, v, w) }.bind( {i: i} ))
     }
 
     this.clients = {};
@@ -371,6 +377,12 @@ class Server extends Worker {
 
   channel(ch) {
     return this.channels[ch];
+  }
+
+  emulator(id) {
+    for (var ch in this.channels)
+      if (this.channels[ch].emulator && this.channels[ch].emulator.id == id)
+        return this.channels[ch].emulator
   }
 
   getAllNodes() {

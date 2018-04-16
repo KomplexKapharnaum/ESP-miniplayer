@@ -25,7 +25,6 @@ class Device extends Worker {
     this.stopTrig = false
 
     this.udpPort = null
-    this.mplayer = null
     this.startCount = 0
 
     this.on('start', function() {
@@ -38,19 +37,10 @@ class Device extends Worker {
         })
         that.udpPort.open()
       })
-
-      that.mplayer = new MPlayer(/*{verbose: true, debug: true}*/);
-      that.mplayer.on('status', (st)=>that.status=st);
-      that.mplayer.loop(that.doLoop)
-      that.mplayer.on('stop', () => {
-        that.startCount -= 1
-        if (that.startCount == 0) that.media = ""
-      });
-
     })
 
     this.on('stop', function() {
-      this.mplayer.quit()
+      // this.mplayer.quit()
       // console.log('exited player')
     })
 
@@ -73,30 +63,21 @@ class Device extends Worker {
     else this.lastPacket = path[2]
     if (path[3] != 'all' && path[3] != 'c'+pad(this.channel,2) && path[3] != this.id) return
 
-    if (path[4] == 'stop') this.audiostop()
-    else if (path[4] == 'play') this.audioplay(
-          glob.sync(config.basepath.mp3+"/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3"),
-          parseInt(path[7]))
-    else if (path[4] == 'playtest') this.audioplay('/test.mp3', 100)
-    else if (path[4] == 'volume') this.mplayer.volume(parseInt(path[5]))
-    else if (path[4] == 'loop') {
-      this.doLoop = parseInt(path[5]) > 0
-      this.mplayer.loop(this.doLoop)
+    if (path[4] == 'stop') this.emit('action.stop')
+    else if (path[4] == 'play') {
+      this.media = glob.sync(config.basepath.mp3+"/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3").split(config.basepath.mp3)[1]
+      this.emit('action.play', {media:this.media, volume:parseInt(path[7])})
     }
+    else if (path[4] == 'playtest') {
+      this.media = '/test.mp3'
+      this.emit('action.play', {media:this.media, volume:100})
+    }
+    else if (path[4] == 'volume') this.emit('action.volume', parseInt(path[5])) //this.mplayer.volume(parseInt(path[5]))
+    else if (path[4] == 'loop') this.emit('action.loop', (parseInt(path[5]) > 0))
 
   }
 
-  audioplay(media, volume, skipStop) {
-    this.media = media
-    this.mplayer.openFile('../mp3'+media);
-    this.mplayer.volume(volume)
-    this.mplayer.loop(this.doLoop)
-    this.mplayer.play()
-    this.startCount += 1
-  }
-
-  audiostop() {
-    this.mplayer.stop()
+  stopped() {
     this.media = ""
   }
 

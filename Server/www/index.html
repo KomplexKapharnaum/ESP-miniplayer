@@ -4,6 +4,7 @@
       <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
+        <button id="play">Yodel!</button>
 
         <div class="blockfull server-info">
           <div class="header">KXKM // ESP-miniplayers</div>
@@ -20,6 +21,7 @@
 
         <script src="/jquery/dist/jquery.js"></script>
         <script src="/socket.io/socket.io.js"></script>
+        <script src="/howler/dist/howler.min.js"></script>
 
         <!-- Insert this line after script imports -->
         <script>if (window.module) module = window.module;</script>
@@ -32,13 +34,198 @@
             return str
         }
 
-        function getClient(id, channel) {
-          var cli_blk;
-          // Find or create
-          if ($('.player-'+id).length) cli_blk = $('.player-'+id)
-          else {
-            var ch_cont = $('.channel-'+channel).find('.devices');
-            cli_blk = $('<div class="block player player-'+id+'">').appendTo( ch_cont )
+
+        var fileCount = 0
+        var socket = io.connect('http://127.0.0.1:8088');
+
+        socket.on('connect', (data) => {
+          socket.emit('join', 'Hello World');
+        });
+
+        socket.on('disconnect', () => {
+         centrale.destroy()
+         $('#broadcastIP').html("Waiting for server..")
+        })
+
+        socket.on('snapshot', (data) => {
+          // Server info
+          $('#broadcastIP').html( "Broadcasting on "+data['server']['broadcastIP'] )
+          fileCount = data['server']['fileCount']
+
+          centrale.destroy()
+          centrale.update(data)
+        });
+
+        socket.on('updatecli', function(data) {
+          centrale.getChannel(data['info']['channel']).getClient(data['info']['id']).update(data)
+        });
+
+        socket.on('updatechan', function(data) {
+        //  console.log(data)
+          centrale.getChannel(data['channel']).update(data)
+        });
+
+        // AUDIO AP
+        const playButton = document.querySelector('#play');
+        playButton.onclick = () => {sound.stop(); sound.play()}
+
+        var sound = new Howl({
+          src: ['http://localhost:3742/get/001/002.mp3']
+        })
+
+
+        ///////////
+
+        // CHANNEL
+        class Centrale {
+          constructor() {
+            this.channels=[]
+          }
+
+          update(data) {
+            for (var chan of data['channels'])
+              this.getChannel(chan['channel']).update(chan)
+          }
+
+          destroy() {
+            for (var i=0; i<this.channels.length; i++)
+              if (this.channels[i]) this.channels[i].destroy()
+            this.channels=[]
+          }
+
+          getChannel(nchan) {
+            if (!this.channels[nchan]) {
+              this.channels[nchan] = new Channel(nchan)
+              $('#channels-list').append(this.channels[nchan].mainblock)
+            }
+            return this.channels[nchan]
+          }
+        }
+
+        ///////////
+
+        // CHANNEL
+        class Channel {
+          constructor(nchan) {
+            this.chan = nchan
+            this.clients = {}
+
+            var ch_blk = $('<div class="blockfull channel-'+nchan+'">').appendTo( $('#channels-list') )
+            var ch_ctrl = $('<div class="channel">').appendTo(ch_blk)
+              $('<div class="header">').html(" "+nchan).appendTo(ch_ctrl)
+              $('<div class="subheader bank">').appendTo(ch_ctrl)
+              // $('<div class="subheader loop">').appendTo(ch_ctrl)
+              $('<div class="subheader cmd">').appendTo(ch_ctrl)
+              $('<div class="player-tools">')
+                .append( $('<button class="testbtn">test</button>').on('click', function() {socket.emit('channel.test', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="loopbtn">loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="emulbtn">emul</button>').on('click', function() {socket.emit('channel.emul', this.nchan)}.bind({nchan:nchan}) ))
+                .appendTo(ch_ctrl)
+
+            this.deviceblock = $('<div class="devices">').appendTo(ch_blk)
+
+            this.mainblock = ch_blk
+          }
+
+          update(data) {
+            this.mainblock.find('.bank').html("BANK: "+pad(data['bank'],3))
+            this.mainblock.find('.cmd').html("CMD: "+data['cmd'])
+            this.mainblock.find('.loopbtn').removeClass('green').addClass(data['loop']?'green':'')
+            this.mainblock.find('.emulbtn').removeClass('green').addClass(data['emul']?'green':'')
+
+            if (data['clients'])
+              for (var cli of data['clients'])
+                this.getClient(cli['info']['id']).update(cli)
+          }
+
+          destroy() {
+            for (var cl in this.clients) this.clients[cl].destroy()
+            this.mainblock.remove()
+          }
+
+          getClient(id) {
+            if (!this.clients[id]) {
+              this.clients[id] = new Client(id)
+              this.deviceblock.append(this.clients[id].mainblock)
+              console.log('added client', id)
+            }
+            return this.clients[id]
+          }
+
+          removeClient(id) {
+            if (this.clients[id]) {
+              this.clients[id].destroy()
+              this.clients[id] = null
+            }
+          }
+        }
+
+        ///////////
+
+        // PLAYER
+        class Player {
+          constructor(id) {
+            var that = this
+            this.id = id
+            this.enable = (id >= 1000)
+            this.player = null
+            this.doLoop = true
+
+            if (this.enable)
+              socket.on('emulator-'+id, function(data) {
+                if (data['event'] == 'play') that.play(data['value'])
+                else if (data['event'] == 'stop') that.stop()
+                else if (data['event'] == 'volume') that.volume(data['value'])
+                else if (data['event'] == 'loop') that.loop(data['value'])
+                // console.log(data)
+              });
+          }
+
+          play(data) {
+            if (!this.enable) return;
+            var that = this
+            if (this.player != null) this.player.off('stop')
+            this.stop()
+            this.player = new Howl({
+              src: ['http://localhost:3742/get/'+data['media']],
+              loop: this.doLoop,
+              autoplay: true,
+              volume: data['volume']/100.0,
+              html5: true
+            })
+            this.player.on('stop', ()=>{
+              socket.emit('emulator.stopped', that.id)
+              // console.log('stopped')
+            })
+          }
+
+          stop() {
+            if (!this.enable) return;
+            if (this.player != null) this.player.unload()
+            this.player = null
+          }
+
+          volume(v) {
+            this.player.volume(v/100.0)
+          }
+
+          loop(doLoop) {
+            this.doLoop = doLoop
+            this.player.loop(doLoop)
+          }
+
+
+        }
+
+        ///////////
+
+        // CLIENT
+        class Client extends Player {
+          constructor(id) {
+            super(id)
+
+            var cli_blk = $('<div class="block player player-'+id+'">')
             if (id < 1000) {
               $('<div class="subheader player-version">').appendTo(cli_blk)
 
@@ -63,114 +250,57 @@
             $('<div class="subheader player-media">').appendTo(cli_blk)
             $('<div class="subheader player-error">').addClass('red').appendTo(cli_blk)
 
+            this.mainblock = cli_blk
+
           }
-          return cli_blk;
-        }
 
-        function updateClient(cli) {
-          var cli_blk = getClient(cli['info']['id'], cli['info']['channel'])
+          update(cli)  {
 
-          // State
-          var state;
-          if (cli['state'] == 'online') state = 'green';
-          else if (cli['state'] == 'offline') state = 'yellow';
-          else {
-            state = 'red';
-            if (cli['info']['id'] > 1000) {
-              cli_blk.remove()
-              return
+            // State
+            var state;
+            if (cli['state'] == 'online') state = 'green';
+            else if (cli['state'] == 'offline') state = 'yellow';
+            else {
+              state = 'red';
+              if (cli['info']['id'] > 1000) {
+                centrale.getChannel(cli['info']['channel']).removeClient(cli['info']['id'])
+                return
+              }
             }
-          }
-          cli_blk.find(".header").removeClass('red green yellow').addClass(state)
-          cli_blk.find(".player-version").html("v"+cli['info']['version'])
+            this.mainblock.find(".header").removeClass('red green yellow').addClass(state)
+            this.mainblock.find(".player-version").html("v"+cli['info']['version'])
 
-          // Info
-          cli_blk.find(".player-info").find('.ip').html(cli['ip'])
+            // Info
+            this.mainblock.find(".player-info").find('.ip').html(cli['ip'])
 
-          // State
-          cli_blk.find(".player-state").find('.link').removeClass('red green').addClass(cli['info']['link']?"green":"red")
-          cli_blk.find(".player-state").find('.sd').removeClass('red green').addClass(cli['info']['sd']?"green":"red")
-          if (fileCount > 0) {
-            var syncProgress = Math.round(cli['info']['sync']*100/fileCount)
-            cli_blk.find(".player-state").find('.sync').html(syncProgress+"%").removeClass('red yellow green')
-            if (syncProgress == 0) cli_blk.find(".player-state").find('.sync').addClass("red")
-            else if (syncProgress < 100) cli_blk.find(".player-state").find('.sync').addClass("yellow")
-            else cli_blk.find(".player-state").find('.sync').addClass("green")
-          }
-
-          // Media & error
-          cli_blk.find(".player-media").html(cli['info']['media']).removeClass('red yellow').addClass(cli['info']['media']=='stop'?"red":"yellow")
-          cli_blk.find(".player-error").html(cli['info']['error'])
-        }
-
-        function getChannel(nchan) {
-          var ch_blk;
-          // Find or create
-          if ($('.channel-'+nchan).length) ch_blk = $('.channel-'+nchan)
-          else {
-            ch_blk = $('<div class="blockfull channel-'+nchan+'">').appendTo( $('#channels-list') )
-            var ch_ctrl = $('<div class="channel">').appendTo(ch_blk)
-              $('<div class="header">').html(" "+nchan).appendTo(ch_ctrl)
-              $('<div class="subheader bank">').appendTo(ch_ctrl)
-              // $('<div class="subheader loop">').appendTo(ch_ctrl)
-              $('<div class="subheader cmd">').appendTo(ch_ctrl)
-              $('<div class="player-tools">')
-                .append( $('<button class="testbtn">test</button>').on('click', function() {socket.emit('channel.test', this.nchan)}.bind({nchan:nchan}) ))
-                .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
-                .append( $('<button class="loopbtn">loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
-                .append( $('<button class="emulbtn">emul</button>').on('click', function() {socket.emit('channel.emul', this.nchan)}.bind({nchan:nchan}) ))
-                .appendTo(ch_ctrl)
-
-            $('<div class="devices">').appendTo(ch_blk)
-
-
-          }
-          return ch_blk;
-        }
-
-        function updateChannel(data) {
-          var ch_blk = getChannel(data['channel'])
-          ch_blk.find('.bank').html("BANK: "+pad(data['bank'],3))
-          ch_blk.find('.cmd').html("CMD: "+data['cmd'])
-
-          ch_blk.find('.loopbtn').removeClass('green').addClass(data['loop']?'green':'')
-          ch_blk.find('.emulbtn').removeClass('green').addClass(data['emul']?'green':'')
-        }
-
-         var fileCount = 0
-         var socket = io.connect('http://127.0.0.1:8088');
-
-         socket.on('connect', (data) => {
-            socket.emit('join', 'Hello World');
-         });
-
-         socket.on('disconnect', () => {
-           $('#channels-list').empty()
-           $('#broadcastIP').html("Waiting for server..")
-         })
-
-         socket.on('snapshot', (data) => {
-            // Server info
-            $('#broadcastIP').html( "Broadcasting on "+data['server']['broadcastIP'] )
-            fileCount = data['server']['fileCount']
-
-            //Channels
-            $('#channels-list').empty()
-            for (var chan of data['channels']) {
-              updateChannel(chan)
-              for (var cli of chan['clients']) updateClient(cli)
+            // State
+            this.mainblock.find(".player-state").find('.link').removeClass('red green').addClass(cli['info']['link']?"green":"red")
+            this.mainblock.find(".player-state").find('.sd').removeClass('red green').addClass(cli['info']['sd']?"green":"red")
+            if (fileCount > 0) {
+              var syncProgress = Math.round(cli['info']['sync']*100/fileCount)
+              this.mainblock.find(".player-state").find('.sync').html(syncProgress+"%").removeClass('red yellow green')
+              if (syncProgress == 0) this.mainblock.find(".player-state").find('.sync').addClass("red")
+              else if (syncProgress < 100) this.mainblock.find(".player-state").find('.sync').addClass("yellow")
+              else this.mainblock.find(".player-state").find('.sync').addClass("green")
             }
-         });
 
-         socket.on('updatecli', function(data) {
-            updateClient(data)
-         });
+            // Media & error
+            this.mainblock.find(".player-media").html(cli['info']['media']).removeClass('red yellow').addClass(cli['info']['media']=='stop'?"red":"yellow")
+            this.mainblock.find(".player-error").html(cli['info']['error'])
+          }
 
-         socket.on('updatechan', function(data) {
-          //  console.log(data)
-            updateChannel(data)
-         });
+          destroy() {
+            this.stop()
+            this.mainblock.remove()
+          }
+        }
+
+        var centrale = new Centrale()
+
+
+
 
         </script>
+
     </body>
 </html>

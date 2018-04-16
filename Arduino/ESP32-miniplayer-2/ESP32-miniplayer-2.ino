@@ -23,14 +23,14 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  settings_set("id", 25);
-  settings_set("channel", 11);
-  settings_set("gain", 20);
+  //settings_set("id", 25);
+  //settings_set("channel", 11);
+  //settings_set("gain", 20);
 
   // Wifi
   // wifi_static("192.168.0.237");
-  //wifi_connect("interweb", "superspeed37");
-  wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
+  wifi_connect("interweb", "superspeed37");
+  //wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
   wifi_ota( "esp-"+String(settings_get("id"))+" c"+String(settings_get("channel"))+" v"+String(MP_VERSION,2) );
   wifi_onConnect(doOnConnect);
   //wifi_wait(5000, true);
