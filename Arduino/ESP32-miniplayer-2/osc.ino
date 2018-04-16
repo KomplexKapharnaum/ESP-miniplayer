@@ -98,7 +98,7 @@ void osc_loop()
     return osc_clear();
   }
 
-  if ((millis() - last_beacon) > 1000) osc_beacon();
+  if ((millis() - last_beacon) > 800) osc_beacon();
 }
 
 //

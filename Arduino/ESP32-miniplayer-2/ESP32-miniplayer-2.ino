@@ -23,8 +23,8 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  settings_set("id", 37);
-  settings_set("channel", 10);
+  settings_set("id", 25);
+  settings_set("channel", 11);
   settings_set("gain", 20);
 
   // Wifi

@@ -245,7 +245,7 @@ void sd_fileCheck(String payload) {
     int result = udh.download(url, sd_downdata, sd_downprogress);  
     dlFile.close();
 
-    if (result == 0) {
+    if (result == 0 && dlSize == fsize) {
       int timed = (millis() - startTime);
       if (timed == 0) timed += 1;
       LOG("download done: " + String(dlSize / 1024) + "kB in " + String(timed / 1000) + "s -> " + String((dlSize / 1024) * 1000 / timed) + "kB/s");
