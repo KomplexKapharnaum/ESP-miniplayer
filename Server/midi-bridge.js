@@ -9,9 +9,8 @@ class MidiInterface {
     var that = this
     this.ESPserver = ESPserver
 
-    //if (isLinux) this.MidiIN = new Emidi.Input('Virtual Raw MIDI 0-0 16:0');
-    // else
-    this.MidiIN = new Emidi.Input('ESP-miniplayers', true);
+    if (isLinux) this.MidiIN = new Emidi.Input('Virtual Raw MIDI 0-0 16:0');
+    else this.MidiIN = new Emidi.Input('ESP-miniplayers', true);
 
     // console.log(Emidi.getInputs());
 
@@ -20,7 +19,7 @@ class MidiInterface {
       msg.note += 1
       if (msg.note == 1) that.ESPserver.channel((msg.channel+1)).stop()    // Magic note OFF
       else that.ESPserver.channel((msg.channel+1)).play(msg.note, msg.velocity)
-      // console.log(msg)
+      console.log(msg)
     });
 
     // Control Changes
