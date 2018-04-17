@@ -4,14 +4,15 @@ const pad = require('./utils.js').pad
 const OSC = require('osc')
 const glob = require("glob")
 var config = require('./config.js');
-const MPlayer = require('mplayer');
+
+/*const MPlayer = require('mplayer');
 MPlayer.prototype.quit = function() {
     this.player.instance.removeAllListeners('exit')
     this.player.cmd('quit');
 }
 MPlayer.prototype.loop = function(doLoop) {
     this.player.cmd('set_property', ['loop', (doLoop?0:-1)])
-}
+}*/
 
 class Device extends Worker {
   constructor(channel) {
