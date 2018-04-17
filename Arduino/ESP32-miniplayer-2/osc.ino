@@ -28,7 +28,7 @@ void osc_setup()
   serverIP[2] = myIP[2] | (~mask[2]);
   serverIP[3] = myIP[3] | (~mask[3]);
 
-  LOGINL("OSC: Broadcasting on "); 
+  LOGINL("OSC: Broadcasting on ");
   LOG(serverIP);
 }
 
@@ -41,9 +41,9 @@ void osc_loop()
     int len = udp_in.read(incomingPacket, 1470);
     if (len >= 0) incomingPacket[len] = 0;
     else return;
-    
+
     //LOGF("UDP: packet received: %s\n", incomingPacket);
-    
+
     currentData = String(incomingPacket);
     String data = osc_next();
 
@@ -66,8 +66,10 @@ void osc_loop()
 
     // Set Server IP
     linkIP = udp_in.remoteIP();
-    linkStatus = true;
-
+    if (!linkStatus) {
+      linkStatus = true;
+    }
+    
     // Check identity
     data = osc_next();
     if (data != osc_id() && data != "all" && data != osc_ch()) {
@@ -77,9 +79,13 @@ void osc_loop()
 
     // Command
     data = osc_next();
-    if (data == "stop") audio_stop();
+    if (data == "hello") ;
+    else if (data == "sync") {
+      sync_setHost(linkIP);
+      sync_do(osc_next().toInt());
+    }
+    else if (data == "stop") audio_stop();
     else if (data == "play") {
-      //String mediaPath = osc_next()+"/"+osc_next()+".mp3";
       String mediaPath = sd_getPathNote(osc_next().toInt(), osc_next().toInt());
       audio_volume(osc_next().toInt());
       audio_play(mediaPath);
@@ -106,8 +112,8 @@ void osc_loop()
 //
 void osc_beacon()
 {
-  if ((millis() - last_beacon) < 800) return; 
-  
+  if ((millis() - last_beacon) < 800) return;
+
   udp_out.beginPacket(serverIP, send_port);
 
   // OSC over UDP
@@ -119,12 +125,12 @@ void osc_beacon()
   msg.add(settings_get("channel"));
   msg.add(linkStatus);
   msg.add(audio_sdOK);
-  msg.add(sd_syncNbr());
+  msg.add(sync_size());
   if (audio_currentFile != "") msg.add(audio_currentFile.c_str());
   else msg.add("stop");
   msg.add(audio_errorPlayer.c_str());
-  msg.send(udp_out); 
-  
+  msg.send(udp_out);
+
   udp_out.endPacket();
   last_beacon = millis();
 

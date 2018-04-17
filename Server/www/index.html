@@ -4,7 +4,9 @@
       <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
-        <button id="play">Yodel!</button>
+        <div class="block synccheck">
+          <input type=checkbox id="sync">Sync!</input>
+        </div>
 
         <div class="blockfull server-info">
           <div class="header">KXKM // ESP-miniplayers</div>
@@ -36,6 +38,7 @@
 
 
         var fileCount = 0
+        var syncStamp = 0
         var socket = io.connect('http://127.0.0.1:8088');
 
         socket.on('connect', (data) => {
@@ -65,13 +68,15 @@
           centrale.getChannel(data['channel']).update(data)
         });
 
-        // AUDIO AP
-        const playButton = document.querySelector('#play');
-        playButton.onclick = () => {sound.stop(); sound.play()}
+        socket.on('syncstamp', function(data) {
+        //  console.log(data)
+          fileCount = data['filecount']
+          syncStamp = data['stamp']
+        });
 
-        var sound = new Howl({
-          src: ['http://localhost:3742/get/001/002.mp3']
-        })
+        $("#sync").change(function() {
+            socket.emit('sync', this.checked);
+        });
 
 
         ///////////

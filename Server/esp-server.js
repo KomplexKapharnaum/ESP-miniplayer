@@ -17,6 +17,7 @@ const OSC = require('osc')
 
 var TIME_OFFLINE = 2500;  // Offline Time
 var TIME_GONE = 4000;     // Gone Time
+var TIME_SYNC = 2000      // Sync alert Time
 
 function log(msg) {
   console.log(msg);
@@ -144,9 +145,11 @@ class Channel extends EventEmitter {
   }
 
   playtest() {
-    this.velocity = 100
+    /*this.velocity = 100
     this.media = 'test'
-    this.send('/playtest')
+    this.send('/playtest')*/
+    this.bankDir = 0
+    this.play(1)
   }
 
   stop() {
@@ -234,9 +237,13 @@ class Channel extends EventEmitter {
 }
 
 class Server extends Worker {
-  constructor() {
+  constructor(syncserver) {
     super(100);
     var that = this;
+
+    this.syncserver = syncserver
+    this.doSync = false
+    this.tickSync = 0
 
     // Kill previous servers
     const { spawnSync} = require('child_process');
@@ -266,6 +273,16 @@ class Server extends Worker {
       var TICK_OFFLINE = Math.round(TIME_OFFLINE/that.timerate);
       var TICK_GONE = Math.round(TIME_GONE/that.timerate);
       for (var id in that.clients) that.clients[id].check(TICK_OFFLINE, TICK_GONE);
+
+      if (that.doSync && that.syncserver) {
+        that.tickSync += 1
+        var TICK_SYNC = Math.round(TIME_SYNC/that.timerate);
+        if (that.tickSync > TICK_SYNC) {
+          that.tickSync = 0
+          that.broadcast('/all/sync/'+that.syncserver.syncStamp())
+          that.emit('syncstamp', that.syncserver.syncStamp(), that.syncserver.fileCount())
+        }
+      }
     });
 
 
@@ -332,12 +349,8 @@ class Server extends Worker {
       that.clients[id].update(ip, info);
 
       // Send hello if nolink
-      if (!info.link) that.broadcast("/hello");
+      if (!info.link) that.broadcast("/all/hello");
     });
-
-    // scan files
-    this.fileCount = glob.sync(config.basepath.mp3+'/*/*.mp3').length
-    console.log("Found "+this.fileCount+" mp3 files")
   }
 
   broadcast(message) {
@@ -397,13 +410,21 @@ class Server extends Worker {
 
     // server info
     snapshot['server']['broadcastIP'] = this.broadcastIP
-    snapshot['server']['fileCount'] = this.fileCount
+    snapshot['server']['fileCount'] = this.syncserver.fileCount()
 
     // channels info
     for (var i=0; i<16; i++)
       snapshot['channels'][i] = this.channel(i+1).getSnapshot()
 
     return snapshot
+  }
+
+  startsync() {
+    this.doSync = true
+  }
+
+  stopsync() {
+    this.doSync = false
   }
 }
 

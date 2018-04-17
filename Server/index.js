@@ -5,20 +5,21 @@ var config = require('./config.js');
 const Utils = require('./utils.js')
 Utils.cls()
 
+// Create file sync server
+const FileSync = require('./esp-fileserver.js')
+FileSync.start()
+
 // Load Hnode library
 const ESPlib = require('./esp-server.js')
-var ESPserver = new ESPlib.Server()
-
-// Console display
-//setInterval(()=>Utils.consoledisp(ESPserver), 500)
+var ESPserver = new ESPlib.Server(FileSync)
 
 // Create MIDI iface
 const MidiBridge = require('./midi-bridge.js')
 var MIDIiface = new MidiBridge.MidiInterface(ESPserver);
 
-// Create file sync server
-const FileSync = require('./esp-fileserver.js')
-FileSync.start()
+// Console display
+//setInterval(()=>Utils.consoledisp(ESPserver), 500)
+
 
 // Start web interface
 const WEBlib = require('./web-server.js')

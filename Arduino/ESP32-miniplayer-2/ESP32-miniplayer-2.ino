@@ -1,7 +1,7 @@
 /*
  * SETTINGS
  */
-#define MP_VERSION  0.71
+#define MP_VERSION  0.72
 
 /*
  * INCLUDES
@@ -26,13 +26,13 @@ void setup() {
   //settings_set("id", 13);
   //settings_set("channel", 13);
   //settings_set("gain", 60);
-  //settings_set("model", 1);
+  settings_set("model", 0);
 
   // Wifi
   // wifi_static("192.168.0.237");
   //wifi_connect("interweb", "superspeed37");
   wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
-  wifi_ota( "esp-"+String(settings_get("id"))+" c"+osc_ch()+" v"+String(MP_VERSION,2) );
+  wifi_ota( "esp-"+osc_id()+" "+osc_ch()+" v"+String(MP_VERSION,2) );
   wifi_onConnect(doOnConnect);
   //wifi_wait(5000, true);
 
@@ -58,9 +58,6 @@ void setup() {
   // Audio
   audio_setup();
   audio_loop(true);
-
-  
-  sd_syncRemote();
 }
 
 /*
@@ -73,6 +70,7 @@ void loop() {
   osc_loop();
   
   audio_run();
+
 }
 
 

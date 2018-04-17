@@ -54,6 +54,12 @@ class Server extends EventEmitter {
           var emul = that.espserver.emulator(id)
           if (emul) emul.stopped()
       })
+
+      // SYNC
+      client.on('sync', function(doSync) {
+          if (doSync) that.espserver.startsync()
+          else that.espserver.stopsync()
+      })
     })
 
     // BIND CLIENT EVENTS
@@ -71,6 +77,12 @@ class Server extends EventEmitter {
     this.espserver.on('channel.emulator.action.*', function(channel, id, data) {
       that.io.emit('emulator-'+id, {event: this.event.split('action.')[1], value:data})
       // console.log('emulator-'+id, {event: this.event.split('action.')[1], value:data})
+    })
+
+    // BIND SERVER EVENTS
+    this.espserver.on('syncstamp', function(stamp, count) {
+      //console.log(this.event, value1, value2);
+      that.io.emit('syncstamp', {stamp: stamp, filecount: count})
     })
   }
 }

@@ -114,3 +114,7 @@ button:focus {outline:0;}
     opacity: 0;
   }
 }
+
+.synccheck {
+  float: right
+}

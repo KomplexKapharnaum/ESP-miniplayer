@@ -4,9 +4,35 @@ const fs = require("fs")
 const pad = require('./utils.js').pad
 var config = require('./config.js');
 const resolve = require('path').resolve
+var chokidar = require('chokidar');
+
 
 const express = require('express')
 const app = express()
+
+var stamp = Math.floor(Date.now() / 1000)
+var filecount = glob.sync(config.basepath.mp3+'/*/*.mp3').length
+
+// Watch directory change
+var changeStamp = null
+chokidar.watch(resolve(config.basepath.mp3), {
+    ignored: /(^|[\/\\])\../,
+    depth: 3,
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 2000,
+      pollInterval: 100
+    }
+  }).on('all', (event, path) => {
+
+    console.log(event, path);
+    clearTimeout(changeStamp)
+    changeStamp = setTimeout(()=>{
+      stamp = Math.floor(Date.now() / 1000);
+      filecount = glob.sync(config.basepath.mp3+'/*/*.mp3').length
+      console.log("stamp updated")
+    }, 5000)
+});
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -43,13 +69,31 @@ app.get('/get/*', (req, res) => {
   res.status(404).send("Sorry can't find that: "+path)
 });
 
-exports.start = function() {
-    /*server.listen(config.filesync.port, (err) => {
-      if (err) {
-        return console.log('FileSync: something bad happened', err)
-      }
-      console.log(`FileSync: server is listening on ${config.filesync.port}`)
-    })*/
+var shouldStop = false
+var isRunning = false
 
-    app.listen(config.filesync.port, () => console.log('FileSync: server is listening on '+config.filesync.port))
-  }
+exports.start = function() {
+  shouldStop = false
+  app.listen(config.filesync.port, () => {
+    console.log('FileSync: server is listening on '+config.filesync.port)
+    isRunning = true
+    if (shouldStop) app.close(()=>{
+      isRunning = false
+    })
+  })
+}
+
+exports.stop = function() {
+  if (isRunning) app.close(()=>{
+    isRunning = false
+  })
+  else shouldStop = true
+}
+
+exports.syncStamp = function() {
+  return stamp
+}
+
+exports.fileCount = function() {
+  return filecount
+}

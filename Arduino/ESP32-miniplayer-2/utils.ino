@@ -15,3 +15,12 @@ String pullSplit(String& input, String separator) {
   return output;
 }
 
+String pad3(int input) {
+  char bank[4];
+  bank[3] = 0;
+  bank[0] = '0' + input / 100;
+  bank[1] = '0' + (input / 10) % 10;
+  bank[2] = '0' + input % 10;
+  return String(bank);
+}
+

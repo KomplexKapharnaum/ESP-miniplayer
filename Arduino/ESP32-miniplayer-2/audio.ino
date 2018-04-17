@@ -62,8 +62,6 @@ bool audio_play(String filePath)
   if (mp3->isRunning()) audio_stop();
   if (filePath == "") return false;
 
-  filePath = "/" + filePath;
-
   file = new AudioFileSourceSD(filePath.c_str());
   if (mp3->begin(file, out)) {
     audio_currentFile = filePath;
