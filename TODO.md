@@ -23,3 +23,9 @@
 
 - Reset if out of order / no-wifi
 - Skip to + State control (play / stop / end)
+
+- Mute on stop (or power standby)
+
+- sync test media
+
+- check bank 0 / 16

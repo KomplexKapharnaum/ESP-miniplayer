@@ -126,9 +126,10 @@ int dlSize = 0;
 File dlFile;
 
 void sd_syncRemote() {
-  sd_syncd = false;
+  if (sd_synced()) return;      // already in sync
+  if (!osc_isLinked()) return;  // no link to host
+  
   sd_syncCount = 0;
-
   xTaskCreate(
     sd_syncTask2, /* Task function. */
     "Sync Task", /* name of task. */
@@ -139,9 +140,6 @@ void sd_syncRemote() {
 }
 
 void sd_syncTask2(void * parameter) {
-  while (!osc_isLinked()) {     // no link to host
-    delay(500);
-  }
 
   sd_scanNotes();  // re-scan SD card
   LOG("\nSyncing...");
@@ -271,5 +269,9 @@ void sd_downprogress(int percent){
 
 int sd_syncNbr() {
   return sd_syncCount;
+}
+
+bool sd_synced() {
+  return sd_syncd;
 }
 

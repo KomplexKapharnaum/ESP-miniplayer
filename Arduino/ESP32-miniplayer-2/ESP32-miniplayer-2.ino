@@ -1,7 +1,7 @@
 /*
  * SETTINGS
  */
-#define MP_VERSION  0.7
+#define MP_VERSION  0.71
 
 /*
  * INCLUDES
@@ -19,27 +19,28 @@ void setup() {
   LOGSETUP();  
 
   // Settings config
-  String keys[16] = {"id", "channel","gain"};
+  String keys[16] = {"id", "channel", "gain", "model"};
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 25);
-  //settings_set("channel", 11);
-  //settings_set("gain", 20);
+  //settings_set("id", 13);
+  //settings_set("channel", 13);
+  //settings_set("gain", 60);
+  //settings_set("model", 1);
 
   // Wifi
   // wifi_static("192.168.0.237");
-  wifi_connect("interweb", "superspeed37");
-  //wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
-  wifi_ota( "esp-"+String(settings_get("id"))+" c"+String(settings_get("channel"))+" v"+String(MP_VERSION,2) );
+  //wifi_connect("interweb", "superspeed37");
+  wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
+  wifi_ota( "esp-"+String(settings_get("id"))+" c"+osc_ch()+" v"+String(MP_VERSION,2) );
   wifi_onConnect(doOnConnect);
   //wifi_wait(5000, true);
 
   // SD
   if (!sd_setup()) {
-    LOG("No SD detected.. restarting");
-    delay(500);
-    ESP.restart();
+    //LOG("No SD detected.. restarting");
+    //delay(500);
+    //ESP.restart();
   }
   
   // SCAN FILES

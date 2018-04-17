@@ -71,7 +71,7 @@ void osc_loop()
     // Check identity
     data = osc_next();
     if (data != osc_id() && data != "all" && data != osc_ch()) {
-      LOG("Not for me ...");
+      LOG("Not for me ... ");
       return osc_clear();
     }
 
@@ -98,7 +98,7 @@ void osc_loop()
     return osc_clear();
   }
 
-  if ((millis() - last_beacon) > 800) osc_beacon();
+  osc_beacon();
 }
 
 //
@@ -106,6 +106,8 @@ void osc_loop()
 //
 void osc_beacon()
 {
+  if ((millis() - last_beacon) < 800) return; 
+  
   udp_out.beginPacket(serverIP, send_port);
 
   // OSC over UDP
@@ -157,7 +159,11 @@ String osc_id() {
 }
 
 String osc_ch() {
-  return "c"+String(settings_get("channel"));
+  byte ch = settings_get("channel");
+  String ans = "c";
+  if (ch < 10) ans += "0";
+  ans += String(ch);
+  return ans;
 }
 
 bool osc_isLinked() {
