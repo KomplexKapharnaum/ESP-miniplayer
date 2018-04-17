@@ -67,7 +67,7 @@ class Device extends Worker {
 
     if (path[4] == 'stop') this.emit('action.stop')
     else if (path[4] == 'play') {
-      this.media = glob.sync(config.basepath.mp3+"/"+parseInt(path[5]).pad(3)+"/"+parseInt(path[6]).pad(3)+"*.mp3").split(config.basepath.mp3)[1]
+      this.media = glob.sync(config.basepath.mp3+"/"+pad(parseInt(path[5]),3)+"/"+pad(parseInt(path[6]),3)+"*.mp3").split(config.basepath.mp3)[1]
       this.emit('action.play', {media:this.media, volume:parseInt(path[7])})
     }
     else if (path[4] == 'playtest') {
