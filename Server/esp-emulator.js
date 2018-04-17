@@ -2,6 +2,7 @@ const Worker = require('./utils.js').Worker
 const getPort = require('get-port')
 const pad = require('./utils.js').pad
 const OSC = require('osc')
+const glob = require("glob")
 var config = require('./config.js');
 const MPlayer = require('mplayer');
 MPlayer.prototype.quit = function() {
