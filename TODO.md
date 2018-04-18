@@ -25,5 +25,4 @@
 
 - Multiple AP: select best AP !
 
-- range VOLUME
-- - fix SYNC
+- fix SYNC (test timeout in UD lib)

@@ -11,25 +11,27 @@
 #include "debug.h"
 #include <WiFi.h>
 #include <SD.h>
+#include "KXKM_STM32_energy_API.h"
 
 /*
  * SETUP
  */
 void setup() {
 
-  // Log
-  LOGSETUP();  
-
   // Settings config
   String keys[16] = {"id", "channel", "gainmax", "gainmin", "model"};
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 19);
-  //settings_set("channel", 3);
-  settings_set("gainmax", 60);    // attenuation
-  settings_set("gainmin", 120);   // attenuation
-  settings_set("model", 1);
+  //settings_set("id", 11);
+  //settings_set("channel", 1);
+  settings_set("gainmax", 70);    // attenuation 60   (20)
+  settings_set("gainmin", 120);   // attenuation 120
+  //settings_set("model", 1);
+
+  // STM32
+  if ( settings_get("model") > 0 ) stm32_setup();
+  else LOGSETUP();  
 
   // Wifi
   // wifi_static("192.168.0.237");
