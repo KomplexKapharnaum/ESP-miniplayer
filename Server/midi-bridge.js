@@ -34,6 +34,11 @@ class MidiInterface {
       // volume
       else if (msg.controller == 7) that.ESPserver.channel((msg.channel+1)).volume( msg.value )
 
+      // cc bank
+      else if (msg.controller == 118) {
+        that.ESPserver.channel(msg.channel+1).bank( msg.value )
+      }
+
       // stop all
       else if (msg.controller == 119) {
         that.ESPserver.broadcast('/all/stop')

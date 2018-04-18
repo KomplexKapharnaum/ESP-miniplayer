@@ -57,6 +57,11 @@ void wifi_connect(const char* ssid, const char* password) {
   WiFi.onEvent(_wifi_event);
   WiFi.begin(ssid, password);
 }
+void wifi_connect(const char* ssid) {
+  WiFi.mode(WIFI_STA);
+  WiFi.onEvent(_wifi_event);
+  WiFi.begin(ssid);
+}
 
 /*
  * Set Callback triggered when connection 

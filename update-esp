@@ -1,0 +1,65 @@
+#!/usr/bin/env python2
+import subprocess, socket
+import os 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+clients = {}
+ip_of_sender = subprocess.check_output("hostname -I" , shell=True).decode('utf-8').rstrip()
+esp_respond_sender_port = '3232'
+sender_to_esp_port = '3232'
+firmware = dir_path+'/Arduino/ESP32-miniplayer/ESP32-miniplayer.ino.esp32.bin'
+
+print(ip_of_sender)
+
+
+from zero import *
+import time
+ 
+class ServiceListener(object):
+    def __init__(self):
+        self.r = Zeroconf()
+ 
+    def removeService(self, zeroconf, type, name):
+        print()
+        print( "Service", name, "removed")
+ 
+    def addService(self, zeroconf, type, name):
+        #print( "  Type is", type)
+        info = self.r.getServiceInfo(type, name)
+        if info:
+        	clients[name] = {}
+        	clients[name]['ip'] = str(socket.inet_ntoa(info.getAddress())).rstrip()
+        	clients[name]['port'] =  str(info.getPort())
+        	print "Device ", len(clients),": Arduino", name, "detected"
+            
+            #print( "  Weight is %d, Priority is %d" % (info.getWeight(),
+            #                                          info.getPriority()))
+            #print( "  Server is", info.getServer())
+            #prop = info.getProperties()
+            #if prop:
+            #    print( "  Properties are")
+            #    for key, value in prop.items():
+            #        print( "    %s: %s" % (key, value))
+            
+ 
+if __name__ == '__main__':
+    r = Zeroconf()
+    type = "_arduino._tcp.local."
+    listener = ServiceListener()
+    browser = ServiceBrowser(r, type, listener)
+    a = raw_input("Press enter to upload...\n\n")
+    r.close()
+    time.sleep(2)
+    y = raw_input("Upload to "+str(len(clients))+" Devices ?... [y/n]\n\n")
+    if y is not 'y':
+    	process.exit()
+ 
+    for esp, info in clients.items():
+		cmd = 'python ~/Arduino/hardware/espressif/esp32/tools/espota.py -i '+info['ip']+' -I '+ip_of_sender+' -p '+info['port']+' -P '+esp_respond_sender_port+' -f '+firmware
+		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		for line in p.stdout.readlines():
+		    print line,
+		retval = p.wait()
+		print(cmd)
+		print("\n")
+
