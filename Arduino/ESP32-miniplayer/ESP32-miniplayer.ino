@@ -1,7 +1,8 @@
 /*
  * SETTINGS
  */
-#define MP_VERSION  0.72  // Sync on demand
+//#define MP_VERSION  0.72  // Sync on demand
+#define MP_VERSION  0.74  // Sync unFreeze
 
 /*
  * INCLUDES
@@ -72,6 +73,7 @@ void loop() {
   
   audio_run();
 
+  sync_alive();
 }
 
 

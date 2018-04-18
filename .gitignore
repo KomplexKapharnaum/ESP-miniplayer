@@ -1,3 +1,5 @@
 node_modules/
 mp3/*/*.mp3
 !mp3/000/*
+.DS_Store
+._.DS_Store

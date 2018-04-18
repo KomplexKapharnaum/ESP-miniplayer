@@ -190,7 +190,7 @@ class Channel extends EventEmitter {
     if (v !== undefined && v != this.volumeCh) {
       this.volumeCh = v
       this.sendGain();
-      this.emit('volume', volume)
+      this.emit('volume', v)
     }
     return this.volumeCh
   }
