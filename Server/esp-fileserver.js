@@ -55,6 +55,7 @@ app.get('/listbank/*', (req, res) => {
     ans += "\n"
   }
   // console.log(ans)
+  console.log('list bank')
   res.send(ans)
 });
 
@@ -64,6 +65,8 @@ app.get('/get/*', (req, res) => {
   if (fs.existsSync(path)) {
     var stat = fs.statSync(path)
     res.sendFile(path)
+    console.log('serving '+path)
+
   }
   else
   res.status(404).send("Sorry can't find that: "+path)

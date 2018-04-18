@@ -24,3 +24,6 @@
 - Mute on stop (or power standby) PCM
 
 - Multiple AP: select best AP !
+
+- range VOLUME
+- - fix SYNC

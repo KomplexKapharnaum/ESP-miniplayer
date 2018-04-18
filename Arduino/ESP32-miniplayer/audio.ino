@@ -91,12 +91,11 @@ void audio_volume(int vol)
 {
   LOGF("GAIN: %i\n", vol);
   if (settings_get("model") > 0) {
-    int v = vol*255*settings_get("gain")/10000;
-    v = 255-constrain(v, 0, 255);
-    pcm.setVolume(v);
+    vol = map(vol, 0, 100, settings_get("gainmin"), settings_get("gainmax"));
+    pcm.setVolume(vol);
   }
   else {
-    float v = vol * settings_get("gain") / 10000.0;
+    float v = vol * settings_get("gainmax") / 10000.0;
     out->SetGain(v);
     LOGF("gain: %f\n", v);
   }

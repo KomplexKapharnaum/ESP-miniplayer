@@ -175,7 +175,7 @@
             this.id = id
             this.enable = (id >= 1000)
             this.player = null
-            this.doLoop = true
+            this.doLoop = false
 
             if (this.enable)
               socket.on('emulator-'+id, function(data) {

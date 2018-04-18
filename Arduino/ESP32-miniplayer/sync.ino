@@ -15,7 +15,6 @@ int lastStamp = 0;
 int lastPct = 0;
 int dlSize = 0;
 File dlFile;
-uint32_t syncProgress_last = 0;
 
 void sync_do(int stamp) {
   
@@ -26,7 +25,6 @@ void sync_do(int stamp) {
   lastStamp = stamp;
   sync_state = SYNC_RUN;
   sync_count = 0;
-  syncProgress_last = millis();
   xTaskCreate(
     sync_task, /* Task function. */
     "Sync Task", /* name of task. */
@@ -38,7 +36,6 @@ void sync_do(int stamp) {
 
 void sync_task(void * parameter) {
   sd_scanNotes();  // re-scan SD card
-  syncProgress_last = millis();
   LOG("\nSyncing...");
 
   for (byte bank = 0; bank < MAX_BANK; bank++) {
@@ -57,8 +54,6 @@ void sync_bankCheck(byte bank) {
 
   HTTPClient http;
   http.begin(sync_host, 3742, "/listbank/"+String(bank));
-
-  syncProgress_last = millis();
   
   if (http.GET() != 200) {
     LOG("Sync: can't get files list");
@@ -122,11 +117,15 @@ void sync_fileCheck(String payload) {
     
     char url[100];
     ("http://"+String(sync_host)+":3742/get"+file).toCharArray(url, 100);
-    syncProgress_last = millis();
-    int result = udh.download(url, sync_writeData, sync_progress);  
+    byte retry = 0;
+    int result = -1;
+    while(retry<5 && result<0) {
+      result = udh.download(url, sync_writeData, sync_progress);
+      retry += 1;
+    }
     dlFile.close();
 
-    if (result == 0 && dlSize == fsize) {
+    if (result == 0 && dlSize == fsize && result >= 0) {
       int timed = (millis() - startTime);
       if (timed == 0) timed += 1;
       LOG("download done: " + String(dlSize / 1024) + "kB in " + String(timed / 1000) + "s -> " + String((dlSize / 1024) * 1000 / timed) + "kB/s");
@@ -147,15 +146,6 @@ void sync_progress(int percent){
   if (percent > lastPct) {
     //LOGF("%d\n", percent);
     lastPct = percent;
-  }
-  syncProgress_last = millis();
-}
-
-void sync_alive() {
-  if (sync_state != SYNC_RUN) return;
-  if ((millis() - syncProgress_last) > 10000) {
-    LOG("sync FROZEN.. restarting");
-    ESP.restart();
   }
 }
 

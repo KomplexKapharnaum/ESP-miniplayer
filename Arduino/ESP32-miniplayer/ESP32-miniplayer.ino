@@ -1,8 +1,9 @@
 /*
  * SETTINGS
  */
-//#define MP_VERSION  0.72  // Sync on demand
-#define MP_VERSION  0.74  // Sync unFreeze
+#define MP_VERSION  0.72  // Sync on demand
+#define MP_VERSION  0.73  // Sync unFreeze
+#define MP_VERSION  0.75  // Volume fix
 
 /*
  * INCLUDES
@@ -20,14 +21,15 @@ void setup() {
   LOGSETUP();  
 
   // Settings config
-  String keys[16] = {"id", "channel", "gain", "model"};
+  String keys[16] = {"id", "channel", "gainmax", "gainmin", "model"};
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 13);
-  //settings_set("channel", 2);
-  //settings_set("gain", 60);
-  //settings_set("model", 0);
+  //settings_set("id", 19);
+  //settings_set("channel", 3);
+  settings_set("gainmax", 60);    // attenuation
+  settings_set("gainmin", 120);   // attenuation
+  settings_set("model", 1);
 
   // Wifi
   // wifi_static("192.168.0.237");
@@ -72,8 +74,6 @@ void loop() {
   osc_loop();
   
   audio_run();
-
-  sync_alive();
 }
 
 

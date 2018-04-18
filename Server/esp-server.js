@@ -115,7 +115,7 @@ class Channel extends EventEmitter {
     else this.chan += num
 
     this.media = 0
-    this.doLoop = true
+    this.doLoop = config.player.loop
     this.doNoteOff = true
     this.bankDir = 1
     this.volumeCh = 127
@@ -124,10 +124,11 @@ class Channel extends EventEmitter {
 
     this.emulator = null
 
-    this.sendGain = debounce(()=> {
+    /*this.sendGain = debounce(()=> {
       this.send("/volume/"+that.gain())
       // console.log(that.gain())
-    }, 100)
+    }, 100)*/
+    this.sendGain = function() {this.send("/volume/"+that.gain())}
   }
 
   send(message) {
