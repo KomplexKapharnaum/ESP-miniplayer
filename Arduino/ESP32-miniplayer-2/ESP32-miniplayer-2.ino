@@ -1,7 +1,7 @@
 /*
  * SETTINGS
  */
-#define MP_VERSION  0.72
+#define MP_VERSION  0.72  // Sync on demand
 
 /*
  * INCLUDES
@@ -26,7 +26,7 @@ void setup() {
   //settings_set("id", 13);
   //settings_set("channel", 13);
   //settings_set("gain", 60);
-  settings_set("model", 0);
+  //settings_set("model", 0);
 
   // Wifi
   // wifi_static("192.168.0.237");
