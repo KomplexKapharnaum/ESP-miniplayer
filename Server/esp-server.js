@@ -111,7 +111,7 @@ class Channel extends EventEmitter {
     this.server = serv
 
     this.chan = 'c';
-    if (num < 9) this.chan += '0'+(num)
+    if (num <= 9) this.chan += '0'+(num)
     else this.chan += num
 
     this.media = 0
@@ -135,6 +135,7 @@ class Channel extends EventEmitter {
     this.server.broadcast("/"+this.chan+message)
     this.lastSend = message
     this.emit('send', message)
+    console.log("/"+this.chan+message)
   }
 
   play(media, velocity) {
