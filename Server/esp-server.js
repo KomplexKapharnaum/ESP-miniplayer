@@ -133,7 +133,7 @@ class Channel extends EventEmitter {
 
   send(message) {
     var path;
-    if (this.chan < 16) path = "/"+this.chan+message
+    if (this.num < 16) path = "/"+this.chan+message
     else path = "/all"+message
 
     this.server.broadcast(path)

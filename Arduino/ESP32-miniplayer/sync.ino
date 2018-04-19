@@ -58,8 +58,9 @@ void sync_bankCheck(byte bank) {
 
   sync_error = "Get bank"+String(bank);
   HTTPClient http;
+  http.setTimeout(5000);
   http.begin(sync_host, 3742, "/listbank/"+String(bank));
-
+  
   if (http.GET() != 200) {
     LOG("Sync: can't get files list");
     sync_error = "Can't get list Bank "+String(bank);
