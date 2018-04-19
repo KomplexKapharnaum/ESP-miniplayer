@@ -54,7 +54,7 @@ void stm32_reset() {
   ESP.restart();
 }
 
-void stm32_stop() {
+void stm32_shutdown() {
   stm32_sendSerialCommand(KXKM_STM32_Energy::SHUTDOWN);
 }
 

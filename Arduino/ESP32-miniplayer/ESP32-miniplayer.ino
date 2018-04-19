@@ -8,6 +8,7 @@
 #define MP_VERSION  0.77  // Sync error report
 #define MP_VERSION  0.78  // Minor Fixes
 #define MP_VERSION  0.79  // Gain based on Model
+#define MP_VERSION  0.80  // Shutdown
 
 /*
    INCLUDES

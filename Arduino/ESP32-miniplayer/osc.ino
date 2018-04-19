@@ -100,6 +100,7 @@ void osc_loop()
     else if (data == "setid") settings_set("id", osc_next().toInt());
     else if (data == "loop") audio_loop((bool) osc_next().toInt());
     else if (data == "reset") stm32_reset();
+    else if (data == "shutdown") stm32_shutdown();
     else LOGF ("Command unknown: %s\n", data.c_str());
 
     return osc_clear();

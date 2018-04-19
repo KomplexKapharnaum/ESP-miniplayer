@@ -129,7 +129,7 @@
                 .append( $('<button class="emulbtn">emul</button>').on('click', function() {socket.emit('channel.emul', this.nchan)}.bind({nchan:nchan}) ))
                 .append('<br />')
                 .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('channel.reset', this.nchan)}.bind({nchan:nchan}) ))
-                // .append( $('<button class="stopbtn">shutdown</button>"').on('click', function() {socket.emit('channel.shutdown', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="stopbtn">shutdown</button>"').on('click', function() {socket.emit('channel.shutdown', this.nchan)}.bind({nchan:nchan}) ))
                 .appendTo(ch_ctrl)
 
             this.deviceblock = $('<div class="devices">').appendTo(ch_blk)

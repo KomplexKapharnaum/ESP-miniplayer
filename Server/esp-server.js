@@ -121,6 +121,7 @@ class Channel extends EventEmitter {
     this.volumeCh = 127
     this.velocity = 100
     this.lastSend = ""
+    this.lastHash = ""
 
     this.emulator = null
 
@@ -135,7 +136,7 @@ class Channel extends EventEmitter {
     if (this.num < 16) path = "/"+this.chan+message
     else path = "/all"+message
 
-    this.server.broadcast(path)
+    this.lastHash = this.server.broadcast(path)
     this.lastSend = message
     this.emit('send', message)
     console.log(path)
@@ -191,6 +192,11 @@ class Channel extends EventEmitter {
   reset() {
     this.send("/reset")
     this.emit('reset')
+  }
+
+  shutdown() {
+    this.send("/shutdown")
+    this.emit('shutdown')
   }
 
   bank(b) {
@@ -388,6 +394,8 @@ class Server extends Worker {
       if (this.channels[ch].emulator) this.channels[ch].emulator.command(oscmsg)
 
     this.lastSend = oscmsg
+
+    return hash
   }
 
   getNodeByIP(ip) {

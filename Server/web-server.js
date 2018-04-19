@@ -54,6 +54,11 @@ class Server extends EventEmitter {
         that.espserver.channel(chan).reset()
       })
 
+      // SHUTDOWN
+      client.on('channel.shutdown', function(chan) {
+        that.espserver.channel(chan).shutdown()
+      })
+
       // EMULATOR
       client.on('emulator.stopped', function(id) {
           var emul = that.espserver.emulator(id)
