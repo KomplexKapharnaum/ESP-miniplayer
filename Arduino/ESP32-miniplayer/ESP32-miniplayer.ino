@@ -6,6 +6,8 @@
 #define MP_VERSION  0.75  // Volume fix
 #define MP_VERSION  0.76  // stm32 support
 #define MP_VERSION  0.77  // Sync error report
+#define MP_VERSION  0.78  // Minor Fixes
+#define MP_VERSION  0.79  // Gain based on Model
 
 /*
    INCLUDES
@@ -21,15 +23,13 @@
 void setup() {
 
   // Settings config
-  String keys[16] = {"id", "channel", "gainmax", "gainmin", "model"};
+  String keys[16] = {"id", "channel", "model"};
   settings_load( keys );
 
   // Settings SET
   //settings_set("id", 26);
   //settings_set("channel", 12);
-  //settings_set("gainmax", 70);    // attenuation(20)  // big: 60  // small: 70
-  //settings_set("gainmin", 120);   // attenuation      // big: 120 // small: 120
-  //settings_set("model", 1);
+  settings_set("model", 1);
 
   // STM32
   if ( settings_get("model") > 0 ) stm32_setup();

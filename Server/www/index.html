@@ -52,7 +52,7 @@
 
         socket.on('snapshot', (data) => {
           // Server info
-          $('#broadcastIP').html( "Broadcasting on "+data['server']['broadcastIP'] )
+          $('#broadcastIP').html( "IP: "+data['server']['ip']+"  -  Broadcasting on "+data['server']['broadcastIP'] )
           fileCount = data['server']['fileCount']
 
           centrale.destroy()
@@ -117,7 +117,8 @@
 
             var ch_blk = $('<div class="blockfull channel-'+nchan+'">').appendTo( $('#channels-list') )
             var ch_ctrl = $('<div class="channel">').appendTo(ch_blk)
-              $('<div class="header">').html(" "+nchan).appendTo(ch_ctrl)
+              if (nchan < 16) $('<div class="header">').html(" "+nchan).appendTo(ch_ctrl)
+              else $('<div class="header">').html(" MASTER").appendTo(ch_ctrl)
               $('<div class="subheader bank">').appendTo(ch_ctrl)
               // $('<div class="subheader loop">').appendTo(ch_ctrl)
               $('<div class="subheader cmd">').appendTo(ch_ctrl)
@@ -126,7 +127,9 @@
                 .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button class="loopbtn">loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button class="emulbtn">emul</button>').on('click', function() {socket.emit('channel.emul', this.nchan)}.bind({nchan:nchan}) ))
+                .append('<br />')
                 .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('channel.reset', this.nchan)}.bind({nchan:nchan}) ))
+                // .append( $('<button class="stopbtn">shutdown</button>"').on('click', function() {socket.emit('channel.shutdown', this.nchan)}.bind({nchan:nchan}) ))
                 .appendTo(ch_ctrl)
 
             this.deviceblock = $('<div class="devices">').appendTo(ch_blk)

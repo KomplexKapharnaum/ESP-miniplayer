@@ -50,8 +50,12 @@ byte stm32_batteryLevel() {
 
 void stm32_reset() {
   stm32_sendSerialCommand(KXKM_STM32_Energy::REQUEST_RESET);
-  delay(1000);
+  delay(2000);
   ESP.restart();
+}
+
+void stm32_stop() {
+  stm32_sendSerialCommand(KXKM_STM32_Energy::SHUTDOWN);
 }
 
 

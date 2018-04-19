@@ -128,7 +128,6 @@ class Channel extends EventEmitter {
       this.send("/volume/"+that.gain())
       // console.log(that.gain())
     }, 100)*/
-    this.sendGain = function() {this.send("/volume/"+that.gain())}
   }
 
   send(message) {
@@ -155,7 +154,7 @@ class Channel extends EventEmitter {
     this.media = 'test'
     this.send('/playtest')*/
     this.bankDir = 0
-    this.play(1)
+    this.play(4, 127)
   }
 
   stop() {
@@ -175,6 +174,11 @@ class Channel extends EventEmitter {
 
   switchLoop() {
     this.loop( !this.loop() )
+  }
+
+  sendGain() {
+    if (this.num < 16) this.send("/volume/"+that.gain())
+    else for (var ch in this.channels) this.channels[ch].sendGain()
   }
 
   noteOffStop(doO) {
@@ -207,8 +211,8 @@ class Channel extends EventEmitter {
   }
 
   gain() {
-    // CONVERT 0->127 x 0->127 into 0->100
-    return Math.round((this.volumeCh*this.velocity*100)/16129)
+    // CONVERT 0->127 (volume channel CC7) x 0->127 (velocity note) x 0->127 (master volume cc7 ch16) into 0->100
+    return Math.round((this.volumeCh*this.velocity*this.server.master().volumeCh*100)/2048383)
   }
 
   getSnapshot(withClients) {
@@ -303,6 +307,7 @@ class Server extends Worker {
       for (var j in ifaces[i])
         if (ifaces[i][j]['family'] == 'IPv4' && ifaces[i][j]['address'] != '127.0.0.1' && !ifaces[i][j]['address'].startsWith('172'))
         {
+          this.ip = ifaces[i][j]['address']
           this.broadcastIP = ip.subnet(ifaces[i][j]['address'], ifaces[i][j]['netmask'])['broadcastAddress']
           // log(broadcastIP)
         }
@@ -422,6 +427,7 @@ class Server extends Worker {
     var snapshot = {'server': {}, 'channels':[]}
 
     // server info
+    snapshot['server']['ip'] = this.ip
     snapshot['server']['broadcastIP'] = this.broadcastIP
     snapshot['server']['fileCount'] = this.syncserver.fileCount()
 
@@ -438,6 +444,10 @@ class Server extends Worker {
 
   stopsync() {
     this.doSync = false
+  }
+
+  master() {
+    return this.channel(16)
   }
 }
 

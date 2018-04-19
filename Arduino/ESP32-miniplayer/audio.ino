@@ -17,10 +17,29 @@ bool audio_loopMedia = false;
 bool audio_sdOK = false;
 String audio_errorPlayer = "";
 
+int gainMin = 120;
+int gainMax = 60;
+
 bool audio_setup()
 {
   if (SD.exists("/")) audio_sdOK = true;
   else audio_sdOK = sd_setup();
+
+  // Prototype
+  if (settings_get("model") == 0) {
+    gainMax = 20;
+  }
+  // Big speakers
+  else if (settings_get("model") == 1) {
+    gainMin = 120;
+    gainMax = 60;
+  }
+  // Small speakers
+  else if (settings_get("model") == 2) {
+    gainMin = 120;
+    gainMax = 75;
+  }
+  
 
   out = new AudioOutputI2S(0,AudioOutputI2S::EXTERNAL_I2S, AudioOutputI2S::APLL_ENABLE);
   //out->SetBitsPerSample(16);
@@ -91,11 +110,11 @@ void audio_volume(int vol)
 {
   LOGF("GAIN: %i\n", vol);
   if (settings_get("model") > 0) {
-    vol = map(vol, 0, 100, settings_get("gainmin"), settings_get("gainmax"));
+    vol = map(vol, 0, 100, gainMin, gainMax);
     pcm.setVolume(vol);
   }
   else {
-    float v = vol * settings_get("gainmax") / 10000.0;
+    float v = vol * gainMax / 10000.0;
     out->SetGain(v);
     LOGF("gain: %f\n", v);
   }
