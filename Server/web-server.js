@@ -49,6 +49,11 @@ class Server extends EventEmitter {
           that.espserver.channel(chan).switchLoop()
       })
 
+      // RESET
+      client.on('channel.reset', function(chan) {
+        that.espserver.channel(chan).reset()
+      })
+
       // EMULATOR
       client.on('emulator.stopped', function(id) {
           var emul = that.espserver.emulator(id)
@@ -60,6 +65,7 @@ class Server extends EventEmitter {
           if (doSync) that.espserver.startsync()
           else that.espserver.stopsync()
       })
+
     })
 
     // BIND CLIENT EVENTS

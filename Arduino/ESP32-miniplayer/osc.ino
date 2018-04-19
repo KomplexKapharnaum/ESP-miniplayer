@@ -99,6 +99,7 @@ void osc_loop()
     else if (data == "setchannel") settings_set("channel", osc_next().toInt());
     else if (data == "setid") settings_set("id", osc_next().toInt());
     else if (data == "loop") audio_loop((bool) osc_next().toInt());
+    else if (data == "reset") stm32_reset();
     else LOGF ("Command unknown: %s\n", data.c_str());
 
     return osc_clear();
@@ -129,6 +130,7 @@ void osc_beacon()
   if (audio_currentFile != "") msg.add(audio_currentFile.c_str());
   else msg.add("stop");
   msg.add(audio_errorPlayer.c_str());
+  msg.add(stm32_batteryLevel());
   msg.send(udp_out);
 
   udp_out.endPacket();

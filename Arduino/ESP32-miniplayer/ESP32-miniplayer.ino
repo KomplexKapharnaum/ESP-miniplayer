@@ -4,6 +4,7 @@
 #define MP_VERSION  0.72  // Sync on demand
 #define MP_VERSION  0.73  // Sync unFreeze
 #define MP_VERSION  0.75  // Volume fix
+#define MP_VERSION  0.76  // stm32 support
 
 /*
  * INCLUDES
@@ -25,8 +26,8 @@ void setup() {
   // Settings SET
   //settings_set("id", 11);
   //settings_set("channel", 1);
-  settings_set("gainmax", 70);    // attenuation 60   (20)
-  settings_set("gainmin", 120);   // attenuation 120
+  //settings_set("gainmax", 70);    // attenuation 60   (20)
+  //settings_set("gainmin", 120);   // attenuation 120
   //settings_set("model", 1);
 
   // STM32
@@ -76,6 +77,8 @@ void loop() {
   osc_loop();
   
   audio_run();
+
+  stm32_loop();
 }
 
 

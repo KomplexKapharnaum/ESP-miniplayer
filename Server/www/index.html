@@ -126,6 +126,7 @@
                 .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button class="loopbtn">loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button class="emulbtn">emul</button>').on('click', function() {socket.emit('channel.emul', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('channel.reset', this.nchan)}.bind({nchan:nchan}) ))
                 .appendTo(ch_ctrl)
 
             this.deviceblock = $('<div class="devices">').appendTo(ch_blk)
@@ -236,6 +237,7 @@
 
               $('<div class="header player-title">')
                 .append($('<span class="title">').html("Player "+id))
+                .append($('<span class="version">'))
                 .appendTo(cli_blk)
               $('<div class="subheader player-info">')
                     .append($('<span class="ip">'))
@@ -245,15 +247,16 @@
                     .append($('<span class="link">').html("link"))
                     .append($('<span class="sd">').html("sdcard"))
                     .append($('<span class="sync">').html("x").addClass("red"))
-                    .append($('<span class="version">'))
                     .appendTo(cli_blk)
             }
             else $('<div class="header">')
                     .append($('<span class="title">').html("Emulator"))
                     .appendTo(cli_blk)
 
+            $('<div class="subheader player-battery">').appendTo(cli_blk)
             $('<div class="subheader player-media">').appendTo(cli_blk)
             $('<div class="subheader player-error">').addClass('red').appendTo(cli_blk)
+
 
             this.mainblock = cli_blk
 
@@ -288,6 +291,7 @@
               else if (syncProgress < 100) this.mainblock.find(".player-state").find('.sync').addClass("yellow")
               else this.mainblock.find(".player-state").find('.sync').addClass("green")
             }
+            this.mainblock.find(".player-battery").html("battery: "+cli['info']['battery'])
 
             // Media & error
             this.mainblock.find(".player-media").html(cli['info']['media']).removeClass('red yellow').addClass(cli['info']['media']=='stop'?"red":"yellow")

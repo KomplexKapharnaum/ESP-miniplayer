@@ -44,7 +44,15 @@ void stm32_loop() {
   }
 }
 
+byte stm32_batteryLevel() {
+  return battery;
+}
 
+void stm32_reset() {
+  stm32_sendSerialCommand(KXKM_STM32_Energy::REQUEST_RESET);
+  delay(1000);
+  ESP.restart();
+}
 
 
 /* Send commands / receive answers */

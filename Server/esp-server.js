@@ -180,6 +180,11 @@ class Channel extends EventEmitter {
     return this.doNoteOff
   }
 
+  reset() {
+    this.send("/reset")
+    this.emit('reset')
+  }
+
   bank(b) {
     if (b !== undefined) {
       this.bankDir = b
@@ -334,7 +339,8 @@ class Server extends Worker {
         sd: message['args'][5],
         sync: message['args'][6],
         media: message['args'][7],
-        error: message['args'][8]
+        error: message['args'][8],
+        battery: message['args'][9],
       }
 
       var id = info['id'];
