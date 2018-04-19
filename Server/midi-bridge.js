@@ -17,26 +17,30 @@ class MidiInterface {
     // NoteON :: PLAY - STOP
     this.MidiIN.on('noteon', (msg) => {
       msg.note += 1
-      if (msg.note == 128) that.ESPserver.channel((msg.channel+1)).stop()    // Magic note OFF
-      else that.ESPserver.channel((msg.channel+1)).play(msg.note, msg.velocity)
+      msg.channel += 1
+
+      if (msg.note == 128) that.ESPserver.channel(msg.channel).stop()    // Magic note OFF
+      else that.ESPserver.channel(msg.channel).play(msg.note, msg.velocity)
+
       console.log(msg)
     });
 
     // Control Changes
     this.MidiIN.on('cc' , (msg) => {
+      msg.channel += 1
       // console.log(msg)
       // loop
-      if (msg.controller == 1) that.ESPserver.channel((msg.channel+1)).loop( (msg.value > 63) )
+      if (msg.controller == 1) that.ESPserver.channel(msg.channel).loop( (msg.value > 63) )
 
       // noteOFF enable
-      if (msg.controller == 2) that.ESPserver.channel((msg.channel+1)).noteOffStop( (msg.value < 63) )
+      if (msg.controller == 2) that.ESPserver.channel(msg.channel).noteOffStop( (msg.value < 63) )
 
       // volume
-      else if (msg.controller == 7) that.ESPserver.channel((msg.channel+1)).volume( msg.value )
+      else if (msg.controller == 7) that.ESPserver.channel(msg.channel).volume( msg.value )
 
       // cc bank
       else if (msg.controller == 118) {
-        that.ESPserver.channel(msg.channel+1).bank( msg.value )
+        that.ESPserver.channel(msg.channel).bank( msg.value )
       }
 
       // stop all

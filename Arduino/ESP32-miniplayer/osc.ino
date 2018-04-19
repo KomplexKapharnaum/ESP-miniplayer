@@ -131,6 +131,7 @@ void osc_beacon()
   else msg.add("stop");
   msg.add(audio_errorPlayer.c_str());
   msg.add(stm32_batteryLevel());
+  msg.add(sync_errorMsg().c_str());
   msg.send(udp_out);
 
   udp_out.endPacket();
@@ -181,4 +182,5 @@ bool osc_isLinked() {
 IPAddress osc_iplink() {
   return linkIP;
 }
+
 

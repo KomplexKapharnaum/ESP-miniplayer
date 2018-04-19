@@ -256,6 +256,7 @@
             $('<div class="subheader player-battery">').appendTo(cli_blk)
             $('<div class="subheader player-media">').appendTo(cli_blk)
             $('<div class="subheader player-error">').addClass('red').appendTo(cli_blk)
+            $('<div class="subheader player-syncerror">').addClass('red').appendTo(cli_blk)
 
 
             this.mainblock = cli_blk
@@ -291,11 +292,12 @@
               else if (syncProgress < 100) this.mainblock.find(".player-state").find('.sync').addClass("yellow")
               else this.mainblock.find(".player-state").find('.sync').addClass("green")
             }
-            this.mainblock.find(".player-battery").html("battery: "+cli['info']['battery'])
+            this.mainblock.find(".player-battery").html("battery: "+cli['info']['battery']+"%")
 
             // Media & error
             this.mainblock.find(".player-media").html(cli['info']['media']).removeClass('red yellow').addClass(cli['info']['media']=='stop'?"red":"yellow")
             this.mainblock.find(".player-error").html(cli['info']['error'])
+            this.mainblock.find(".player-syncerror").html(cli['info']['syncerror'])
           }
 
           destroy() {

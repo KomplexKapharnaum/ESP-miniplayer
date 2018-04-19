@@ -132,10 +132,14 @@ class Channel extends EventEmitter {
   }
 
   send(message) {
-    this.server.broadcast("/"+this.chan+message)
+    var path;
+    if (this.chan < 16) path = "/"+this.chan+message
+    else path = "/all"+message
+
+    this.server.broadcast(path)
     this.lastSend = message
     this.emit('send', message)
-    console.log("/"+this.chan+message)
+    console.log(path)
   }
 
   play(media, velocity) {
@@ -341,6 +345,7 @@ class Server extends Worker {
         media: message['args'][7],
         error: message['args'][8],
         battery: message['args'][9],
+        syncerror: message['args'][10]
       }
 
       var id = info['id'];

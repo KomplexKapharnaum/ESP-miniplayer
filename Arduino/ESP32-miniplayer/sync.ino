@@ -16,6 +16,8 @@ int lastPct = 0;
 int dlSize = 0;
 File dlFile;
 
+String sync_error = "";
+
 void sync_do(int stamp) {
   
   if (stamp <= lastStamp) return;   // this update is already done
@@ -37,6 +39,7 @@ void sync_do(int stamp) {
 void sync_task(void * parameter) {
   sd_scanNotes();  // re-scan SD card
   LOG("\nSyncing...");
+  sync_error = "Syncing..";
 
   for (byte bank = 0; bank < MAX_BANK; bank++) {
     LOG("Syncing BANK " + String(bank));
@@ -47,17 +50,19 @@ void sync_task(void * parameter) {
   LOG("Sync done: " + String(sync_count) + " files");
   sd_scanNotes();  // re-scan SD card
 
+  sync_error = "";
   vTaskDelete( NULL );
 }
 
 void sync_bankCheck(byte bank) {
 
+  sync_error = "Get bank"+String(bank);
   HTTPClient http;
   http.begin(sync_host, 3742, "/listbank/"+String(bank));
-  
+
   if (http.GET() != 200) {
     LOG("Sync: can't get files list");
-    vTaskDelete( NULL );
+    sync_error = "Can't get list Bank "+String(bank);
     return;
   }
 
@@ -72,6 +77,7 @@ void sync_bankCheck(byte bank) {
     //LOG("payload: "+payload);
     yield();
   }
+  sync_error = "Done bank"+String(bank);
 }
 
 void sync_fileCheck(String payload) {
@@ -120,6 +126,8 @@ void sync_fileCheck(String payload) {
     byte retry = 0;
     int result = -1;
     while(retry<5 && result<0) {
+      if (retry > 0) sync_error = "Retrying file "+String(file);
+      else sync_error = "Get file "+String(file);
       result = udh.download(url, sync_writeData, sync_progress);
       retry += 1;
     }
@@ -130,8 +138,12 @@ void sync_fileCheck(String payload) {
       if (timed == 0) timed += 1;
       LOG("download done: " + String(dlSize / 1024) + "kB in " + String(timed / 1000) + "s -> " + String((dlSize / 1024) * 1000 / timed) + "kB/s");
       sync_count += 1;
+      sync_error = "Done file "+String(file);
     }
-    else LOG("Download error");
+    else {
+      LOG("Download error");
+      sync_error = "Abort file "+String(file);
+    }
   }
 
 }
@@ -147,6 +159,7 @@ void sync_progress(int percent){
     //LOGF("%d\n", percent);
     lastPct = percent;
   }
+  sync_error = String(percent)+"%";
 }
 
 void sync_setHost(IPAddress host) {
@@ -162,6 +175,10 @@ int sync_size() {
 
 int sync_getState() {
   return sync_state;
+}
+
+String sync_errorMsg() {
+  return sync_error;
 }
 
 

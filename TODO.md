@@ -25,4 +25,4 @@
 
 - Multiple AP: select best AP !
 
-- fix SYNC (test timeout in UD lib)
+- fix SYNC (ultimate freeze > reboot)

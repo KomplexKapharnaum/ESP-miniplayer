@@ -1,22 +1,23 @@
 /*
- * SETTINGS
- */
+   SETTINGS
+*/
 #define MP_VERSION  0.72  // Sync on demand
 #define MP_VERSION  0.73  // Sync unFreeze
 #define MP_VERSION  0.75  // Volume fix
 #define MP_VERSION  0.76  // stm32 support
+#define MP_VERSION  0.77  // Sync error report
 
 /*
- * INCLUDES
- */
+   INCLUDES
+*/
 #include "debug.h"
 #include <WiFi.h>
 #include <SD.h>
 #include "KXKM_STM32_energy_API.h"
 
 /*
- * SETUP
- */
+   SETUP
+*/
 void setup() {
 
   // Settings config
@@ -24,22 +25,22 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 11);
-  //settings_set("channel", 1);
-  //settings_set("gainmax", 70);    // attenuation 60   (20)
-  //settings_set("gainmin", 120);   // attenuation 120
+  //settings_set("id", 26);
+  //settings_set("channel", 12);
+  //settings_set("gainmax", 70);    // attenuation(20)  // big: 60  // small: 70
+  //settings_set("gainmin", 120);   // attenuation      // big: 120 // small: 120
   //settings_set("model", 1);
 
   // STM32
   if ( settings_get("model") > 0 ) stm32_setup();
-  else LOGSETUP();  
+  else LOGSETUP();
 
   // Wifi
   // wifi_static("192.168.0.237");
   //wifi_connect("interweb", "superspeed37");
   //wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
   wifi_connect("kxkm24nano");
-  wifi_ota( "esp-"+osc_id()+" "+osc_ch()+" v"+String(MP_VERSION,2) );
+  wifi_ota( "esp-" + osc_id() + " " + osc_ch() + " v" + String(MP_VERSION, 2) );
   wifi_onConnect(doOnConnect);
   //wifi_wait(5000, true);
 
@@ -49,7 +50,7 @@ void setup() {
     //delay(500);
     //ESP.restart();
   }
-  
+
   // SCAN FILES
   sd_scanNotes();
 
@@ -68,14 +69,14 @@ void setup() {
 }
 
 /*
- * LOOP
- */
+   LOOP
+*/
 void loop() {
-  
+
   wifi_loop();
-  
+
   osc_loop();
-  
+
   audio_run();
 
   stm32_loop();
@@ -83,9 +84,9 @@ void loop() {
 
 
 /*
- * on Connect
- */
+   on Connect
+*/
 void doOnConnect() {
-   osc_setup();
+  osc_setup();
 }
 
