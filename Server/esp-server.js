@@ -26,10 +26,11 @@ function log(msg) {
 
 
 class Client extends EventEmitter {
-  constructor(ip, info) {
+  constructor(ip, info, serv) {
     super({wildcard:true});
     var that = this;
 
+    this.server = serv
     this.ip = ip;
     this.info = info;
 
@@ -98,6 +99,36 @@ class Client extends EventEmitter {
       'info': this.info,
       'ip': this.ip
     }
+  }
+
+  send(message) {
+    var path = "/"+this.info['id']+message
+
+    this.lastHash = this.server.broadcast(path)
+    this.lastSend = message
+    this.emit('send', message)
+  }
+
+  playtest() {
+    this.send('/play/'+pad(0, 3)+'/'+pad(4, 3)+'/100')
+  }
+
+  stopPlayback() {
+    this.send('/stop')
+  }
+
+  reset() {
+    this.send("/reset")
+    this.emit('reset')
+  }
+
+  shutdown() {
+    this.send("/shutdown")
+    this.emit('shutdown')
+  }
+
+  setChannel(chan) {
+    this.send("/setchannel/"+chan)
   }
 
 }
@@ -363,7 +394,7 @@ class Server extends Worker {
 
       // Create client if new
       if (that.clients[id] == null) {
-        that.clients[id] = new Client(ip, info);
+        that.clients[id] = new Client(ip, info, that);
         that.emit('newnode', that.clients[id]);
         that.clients[id].onAny((e,v) => {that.emit('client.'+e, id, v) })
         // console.log(ip, info)
@@ -378,7 +409,7 @@ class Server extends Worker {
   }
 
   broadcast(message) {
-
+    console.log(message)
     // Hash message with Time
     var hash = crypto.createHash('sha1').update(message+'-'+(new Date()).getTime()).digest('hex').substring(0,10);
 

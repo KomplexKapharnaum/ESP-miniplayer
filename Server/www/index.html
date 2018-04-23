@@ -122,7 +122,7 @@
               $('<div class="subheader bank">').appendTo(ch_ctrl)
               // $('<div class="subheader loop">').appendTo(ch_ctrl)
               $('<div class="subheader cmd">').appendTo(ch_ctrl)
-              $('<div class="player-tools">')
+              $('<div class="channel-tools">')
                 .append( $('<button class="testbtn">test</button>').on('click', function() {socket.emit('channel.test', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button class="loopbtn">loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
@@ -155,7 +155,7 @@
 
           getClient(id) {
             if (!this.clients[id]) {
-              this.clients[id] = new Client(id)
+              this.clients[id] = new Client(id, this.chan)
               this.deviceblock.append(this.clients[id].mainblock)
               console.log('added client', id)
             }
@@ -231,7 +231,7 @@
 
         // CLIENT
         class Client extends Player {
-          constructor(id) {
+          constructor(id, nchan) {
             super(id)
 
             var cli_blk = $('<div class="block player player-'+id+'">')
@@ -261,6 +261,17 @@
             $('<div class="subheader player-error">').addClass('red').appendTo(cli_blk)
             $('<div class="subheader player-syncerror">').addClass('red').appendTo(cli_blk)
 
+            $('<div class="player-tools">')
+              .append( $('<button class="testbtn">test</button>').on('click', function() {socket.emit('player.test', id)} ))
+              .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('player.stop', id)} ))
+              .append('<br />')
+              .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('player.reset', id)} ))
+              .append( $('<button class="stopbtn">off</button>"').on('click', function() {socket.emit('player.shutdown', id)} ))
+              .append('<br />')
+              .append( $('<input type="number" value="'+nchan+'" size="2" />"').on('change', function() {socket.emit('player.channel', id, $(this).val())} ))
+              .appendTo(cli_blk)
+
+
 
             this.mainblock = cli_blk
 
@@ -279,6 +290,7 @@
                 return
               }
             }
+            this.mainblock.removeClass('online offline stop').addClass(cli['state'])
             this.mainblock.find(".header").removeClass('red green yellow').addClass(state)
             this.mainblock.find(".player-version").html("v"+cli['info']['version'])
 
@@ -295,12 +307,13 @@
               else if (syncProgress < 100) this.mainblock.find(".player-state").find('.sync').addClass("yellow")
               else this.mainblock.find(".player-state").find('.sync').addClass("green")
             }
-            this.mainblock.find(".player-battery").html("battery: "+cli['info']['battery']+"%")
+            if (cli['info']['battery'] > 0) this.mainblock.find(".player-battery").html("battery: "+cli['info']['battery']+"%")
 
             // Media & error
             this.mainblock.find(".player-media").html(cli['info']['media']).removeClass('red yellow').addClass(cli['info']['media']=='stop'?"red":"yellow")
             this.mainblock.find(".player-error").html(cli['info']['error'])
             this.mainblock.find(".player-syncerror").html(cli['info']['syncerror'])
+
           }
 
           destroy() {

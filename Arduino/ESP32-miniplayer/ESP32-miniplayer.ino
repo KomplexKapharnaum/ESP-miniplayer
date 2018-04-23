@@ -28,9 +28,9 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 26);
-  //settings_set("channel", 12);
-  settings_set("model", 1);
+  settings_set("id", 39);
+  settings_set("channel", 1);
+  settings_set("model", 2);
 
   // STM32
   if ( settings_get("model") > 0 ) stm32_setup();

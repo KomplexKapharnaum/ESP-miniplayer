@@ -19,6 +19,8 @@
 
 ## ESP
 
+- change channel
+
 - Pitched sound ??
 
 - better test sound
@@ -32,8 +34,6 @@
 - led monitor wifi (dbl click ?)
 
 - BLIP test parrallel audio (mixed)
-
-- Remote STOP
 
 - debug on/off in settings
 

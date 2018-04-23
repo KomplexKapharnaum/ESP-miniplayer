@@ -71,6 +71,31 @@ class Server extends EventEmitter {
           else that.espserver.stopsync()
       })
 
+      // PLAYER TEST
+      client.on('player.test', function(id) {
+          that.espserver.getNodeById(id).playtest()
+      })
+
+      // PLAYER STOP
+      client.on('player.stop', function(id) {
+          that.espserver.getNodeById(id).stopPlayback()
+      })
+
+      // PLAYER RESET
+      client.on('player.reset', function(id) {
+          that.espserver.getNodeById(id).reset()
+      })
+
+      // PLAYER SHUTDOWN
+      client.on('player.shutdown', function(id) {
+          that.espserver.getNodeById(id).shutdown()
+      })
+
+      // PLAYER CHANNEL
+      client.on('player.channel', function(id, chan) {
+          that.espserver.getNodeById(id).setChannel(chan)
+      })
+
     })
 
     // BIND CLIENT EVENTS

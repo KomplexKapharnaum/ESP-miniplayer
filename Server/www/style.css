@@ -70,7 +70,7 @@ body {
   margin-right: 5px;
 }
 
-.player-tools, .content {
+.channel-tools, .content {
   margin-top: 5px;
 }
 
@@ -123,4 +123,17 @@ button:focus {outline:0;}
 
 .synccheck {
   float: right
+}
+
+.player.stop .subheader {
+  display: none;
+}
+
+input[type=number]{
+    width: 32px;
+    margin-top: 5px;
+}
+
+.player-tools {
+  margin-top: 5px;
 }
