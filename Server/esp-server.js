@@ -186,7 +186,7 @@ class Channel extends EventEmitter {
     this.media = 'test'
     this.send('/playtest')*/
     this.bankDir = 0
-    this.play(4, 127)
+    this.play(3, 80)
   }
 
   stop() {
@@ -407,6 +407,11 @@ class Server extends Worker {
       if (!info.link) that.broadcast("/all/hello");
     });
   }
+
+  // removeNode(id) {
+  //   if (this.clients[id]) this.clients[id].stop()
+  //   this.clients[id] = null
+  // }
 
   broadcast(message) {
     console.log(message)

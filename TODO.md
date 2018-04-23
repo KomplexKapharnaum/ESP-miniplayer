@@ -25,6 +25,8 @@
 
 - better test sound
 
+- stop attahed to media !
+
 - Reset if out of order / no-wifi
 - Skip to + State control (play / stop / end)
 

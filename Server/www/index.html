@@ -233,6 +233,7 @@
         class Client extends Player {
           constructor(id, nchan) {
             super(id)
+            var that = this
 
             var cli_blk = $('<div class="block player player-'+id+'">')
             if (id < 1000) {
@@ -268,7 +269,10 @@
               .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('player.reset', id)} ))
               .append( $('<button class="stopbtn">off</button>"').on('click', function() {socket.emit('player.shutdown', id)} ))
               .append('<br />')
-              .append( $('<input type="number" value="'+nchan+'" size="2" />"').on('change', function() {socket.emit('player.channel', id, $(this).val())} ))
+              .append( $('<input type="number" value="'+nchan+'" size="2" />"').on('change', function() {
+                socket.emit('player.channel', id, $(this).val())
+                that.mainblock.remove()
+              }))
               .appendTo(cli_blk)
 
 
