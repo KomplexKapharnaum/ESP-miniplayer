@@ -28,8 +28,8 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  settings_set("id", 39);
-  settings_set("channel", 1);
+  settings_set("id", 24);
+  //settings_set("channel", 1);
   settings_set("model", 2);
 
   // STM32

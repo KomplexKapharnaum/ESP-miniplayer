@@ -27,6 +27,8 @@
 
 - stop attahed to media !
 
+- click => 320 to 256
+
 - Reset if out of order / no-wifi
 - Skip to + State control (play / stop / end)
 

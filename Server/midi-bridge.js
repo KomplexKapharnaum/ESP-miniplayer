@@ -28,7 +28,8 @@ class MidiInterface {
     // Control Changes
     this.MidiIN.on('cc' , (msg) => {
       msg.channel += 1
-      // console.log(msg)
+      console.log(msg)
+
       // loop
       if (msg.controller == 1) that.ESPserver.channel(msg.channel).loop( (msg.value > 63) )
 
