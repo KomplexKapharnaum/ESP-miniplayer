@@ -31,12 +31,12 @@ bool audio_setup()
   }
   // Big speakers
   else if (settings_get("model") == 1) {
-    gainMin = 120;
+    gainMin = 140;
     gainMax = 60;
   }
   // Small speakers
   else if (settings_get("model") == 2) {
-    gainMin = 120;
+    gainMin = 140;
     gainMax = 75;
   }
   

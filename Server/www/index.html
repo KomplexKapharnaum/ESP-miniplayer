@@ -129,7 +129,7 @@
                 .append( $('<button class="emulbtn">emul</button>').on('click', function() {socket.emit('channel.emul', this.nchan)}.bind({nchan:nchan}) ))
                 .append('<br />')
                 .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('channel.reset', this.nchan)}.bind({nchan:nchan}) ))
-                .append( $('<button class="stopbtn">shutdown</button>"').on('click', function() {socket.emit('channel.shutdown', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="stopbtn">shutdown</button>"').on('click', function() {if (confirm("Shutdown Channel ?")) socket.emit('channel.shutdown', this.nchan)}.bind({nchan:nchan}) ))
                 .appendTo(ch_ctrl)
 
             this.deviceblock = $('<div class="devices">').appendTo(ch_blk)
@@ -267,7 +267,7 @@
               .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('player.stop', id)} ))
               .append('<br />')
               .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('player.reset', id)} ))
-              .append( $('<button class="stopbtn">off</button>"').on('click', function() {socket.emit('player.shutdown', id)} ))
+              .append( $('<button class="stopbtn">off</button>"').on('click', function() { if (confirm("Shutdown player ?")) socket.emit('player.shutdown', id)} ))
               .append('<br />')
               .append( $('<input type="number" value="'+nchan+'" size="2" />"').on('change', function() {
                 socket.emit('player.channel', id, $(this).val())

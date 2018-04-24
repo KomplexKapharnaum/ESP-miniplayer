@@ -9,6 +9,9 @@
 #define MP_VERSION  0.78  // Minor Fixes
 #define MP_VERSION  0.79  // Gain based on Model
 #define MP_VERSION  0.80  // Shutdown
+#define MP_VERSION  0.81  // Gain levels
+#define MP_VERSION  0.82  // Sync log
+#define MP_VERSION  0.83  // Sync ignore empty
 
 /*
    INCLUDES
@@ -28,9 +31,9 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  settings_set("id", 24);
-  //settings_set("channel", 1);
-  settings_set("model", 2);
+  //settings_set("id", 25);
+  //settings_set("channel", 15);
+  //settings_set("model", 2);
 
   // STM32
   if ( settings_get("model") > 0 ) stm32_setup();

@@ -110,7 +110,7 @@ class Client extends EventEmitter {
   }
 
   playtest() {
-    this.send('/play/'+pad(0, 3)+'/'+pad(4, 3)+'/100')
+    this.send('/play/'+pad(0, 3)+'/'+pad(2, 3)+'/100')
   }
 
   stopPlayback() {
@@ -417,7 +417,7 @@ class Server extends Worker {
   // }
 
   broadcast(message) {
-    console.log(message)
+    // console.log(message)
     // Hash message with Time
     var hash = crypto.createHash('sha1').update(message+'-'+(new Date()).getTime()).digest('hex').substring(0,10);
 

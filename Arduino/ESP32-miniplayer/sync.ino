@@ -16,6 +16,8 @@ int lastPct = 0;
 int dlSize = 0;
 File dlFile;
 
+int bank_stamp[MAX_BANK] = {0};
+
 String sync_error = "";
 
 void sync_do(int stamp) {
@@ -66,6 +68,7 @@ void sync_bankCheck(byte bank) {
     sync_error = "Can't get list Bank "+String(bank);
     return;
   }
+  sync_error = "Scanning Bank "+String(bank);
 
   String fileList = http.getString();
   http.end();
@@ -93,22 +96,29 @@ void sync_fileCheck(String payload) {
 
   //LOG(payload);
   //LOG("file "+file+" size "+String(fsize));
+  
+  if (fsize == 0) return;
+  
+  sync_error = "Checking file "+file;
 
   // check Size
   if (fsize == sd_noteSize(bank, note)) {
     if (fsize > 0) {
       LOG("ok " + file);
+      sync_error = "File ok "+file;
       sync_count += 1;
     }
     return;
   }
 
   // Delete wrong size file
+  sync_error = "Delete file "+file;
   sd_noteDelete(bank, note);
 
   // missing file: download it
   if (fsize > 0) {
     LOG("missing " + file + " (" + String(fsize) + ")");
+    sync_error = "Missing file "+file;
 
     if ( !SD.exists("/"+pad3(bank)) ) {
       LOG("Creating directory /" + pad3(bank));
