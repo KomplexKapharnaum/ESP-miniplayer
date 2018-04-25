@@ -150,6 +150,7 @@ class Channel extends EventEmitter {
     this.doNoteOff = true
     this.bankDir = 1
     this.volumeCh = 127
+    if (this.num == 16) this.volumeCh = 64
     this.velocity = 100
     this.lastSend = ""
     this.lastHash = ""
@@ -252,7 +253,7 @@ class Channel extends EventEmitter {
 
   gain() {
     // CONVERT 0->127 (volume channel CC7) x 0->127 (velocity note) x 0->127 (master volume cc7 ch16) into 0->100
-    return Math.round((this.volumeCh*this.velocity*this.server.master().volumeCh*100)/2048383)
+    return Math.round((this.volumeCh*2*this.velocity*this.server.master().volumeCh*100)/2048383)
   }
 
   getSnapshot(withClients) {
