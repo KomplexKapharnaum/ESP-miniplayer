@@ -110,7 +110,7 @@ class Client extends EventEmitter {
   }
 
   playtest() {
-    this.send('/play/'+pad(0, 3)+'/'+pad(2, 3)+'/100')
+    this.send('/play/'+pad(0, 3)+'/'+pad(3, 3)+'/100')
   }
 
   stopPlayback() {

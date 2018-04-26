@@ -19,6 +19,8 @@
 
 ## ESP
 
+- volume master in esp => send channel 16 as /all
+
 - change channel
 
 - Pitched sound ??
