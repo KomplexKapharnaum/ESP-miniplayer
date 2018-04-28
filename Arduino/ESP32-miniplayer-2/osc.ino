@@ -10,9 +10,13 @@ IPAddress serverIP;
 bool linkStatus = false;
 String lastPacket = "";
 
+bool osc_newChannel = false;
+int osc_channel = 0;
 
 void osc_start() {
 
+  osc_channel = settings_get("channel");
+  
   IPAddress myIP = WiFi.localIP();
   IPAddress mask = WiFi.subnetMask();
 
@@ -134,7 +138,12 @@ bool osc_parsePacket(String command, IPAddress remote ) {
     audio_play(mediaPath);
   }
   else if (data == "volume") audio_volume(osc_next(currentData).toInt());
-  else if (data == "setchannel") settings_set("channel", osc_next(currentData).toInt());
+  else if (data == "setchannel") {
+    if (!osc_newChannel) {
+      osc_channel = osc_next(currentData).toInt();
+      osc_newChannel = true;
+    }
+  }
   else if (data == "setid") settings_set("id", osc_next(currentData).toInt());
   else if (data == "loop") audio_loop((bool) osc_next(currentData).toInt());
   else if (data == "reset") stm32_reset();
@@ -205,6 +214,18 @@ String osc_ch() {
 
 bool osc_isLinked() {
   return linkStatus;
+}
+
+bool osc_newChan() {
+  return osc_newChannel;
+}
+
+void osc_newChan(bool doit) {
+  osc_newChannel = doit;
+}
+
+int osc_chan() {
+  return osc_channel;
 }
 
 

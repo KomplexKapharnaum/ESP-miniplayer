@@ -14,6 +14,7 @@
 #define MP_VERSION  0.83  // Sync ignore empty
 #define MP_VERSION  0.84  // Threaded audio + Mutexing everything
 #define MP_VERSION  0.86  // Reset if PCM fails to init
+#define MP_VERSION  0.87  // Channel change fix
 
 /*
    INCLUDES
@@ -73,6 +74,12 @@ void setup() {
 */
 void loop() {
   audio_run();
+
+  // write in memory: can't be done in thread ?
+  if (osc_newChan()) {
+    settings_set("channel", osc_chan());
+    osc_newChan(false);
+  }
 }
 
 
