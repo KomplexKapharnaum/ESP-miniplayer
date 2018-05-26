@@ -31,6 +31,10 @@ void stm32_task( void * parameter ) {
   int tickerBattery = 0;
   int event;
 
+  xSemaphoreTake(stm32_lock, portMAX_DELAY);
+  stm32_sendSerialCommand(KXKM_STM32_Energy::SET_LOAD_SWITCH, 1);
+  xSemaphoreGive( stm32_lock );
+  
   // loop
   while (true) {
     xSemaphoreTake(stm32_lock, portMAX_DELAY);
@@ -69,6 +73,8 @@ byte stm32_batteryLevel() {
 
 void stm32_reset() {
   xSemaphoreTake(stm32_lock, portMAX_DELAY);
+  stm32_sendSerialCommand(KXKM_STM32_Energy::SET_LOAD_SWITCH, 0);
+  delay(500);
   stm32_sendSerialCommand(KXKM_STM32_Energy::REQUEST_RESET);
   xSemaphoreGive( stm32_lock );
   delay(2000);
@@ -77,6 +83,7 @@ void stm32_reset() {
 
 void stm32_shutdown() {
   xSemaphoreTake(stm32_lock, portMAX_DELAY);
+  stm32_sendSerialCommand(KXKM_STM32_Energy::SET_LOAD_SWITCH, 0);
   stm32_sendSerialCommand(KXKM_STM32_Energy::SHUTDOWN);
   xSemaphoreGive( stm32_lock );
 }
