@@ -1,5 +1,5 @@
 #include <HTTPClient.h>
-#include "UDHttp.h"
+#include "UDHttp.h"  // Manual dl from https://github.com/nhatuan84/esp-upload-download-file-http
 
 enum : int { 
   SYNC_NOLINK = -1,

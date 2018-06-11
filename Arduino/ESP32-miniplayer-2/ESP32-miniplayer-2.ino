@@ -16,6 +16,7 @@
 #define MP_VERSION  0.86  // Reset if PCM fails to init
 #define MP_VERSION  0.87  // Channel change fix
 #define MP_VERSION  0.88  // Switch ON power line on start / Reset//Stop do switch OFF
+#define MP_VERSION  0.89  // Monitor AP mac + Wifi strength
 
 /*
    INCLUDES
@@ -35,9 +36,9 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  settings_set("id", 30);
-  settings_set("channel", 15);
-  settings_set("model", 1);   // 0: proto -- 1: big -- 2: small
+  //settings_set("id", 30);
+  //settings_set("channel", 15);
+  //settings_set("model", 1);   // 0: proto -- 1: big -- 2: small
 
   // STM32
   if ( settings_get("model") > 0 ) stm32_start();

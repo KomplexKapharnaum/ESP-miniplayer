@@ -14,9 +14,11 @@ const ESPlib = require('./esp-server.js')
 var ESPserver = new ESPlib.Server(FileSync)
 
 // Create MIDI iface
-const MidiBridge = require('./midi-bridge.js')
-var MIDIiface = new MidiBridge.MidiInterface(ESPserver);
-
+var isLinux = /^linux/.test(process.platform);
+if (!isLinux) {
+  const MidiBridge = require('./midi-bridge.js')
+  var MIDIiface = new MidiBridge.MidiInterface(ESPserver);
+}
 // Console display
 //setInterval(()=>Utils.consoledisp(ESPserver), 500)
 

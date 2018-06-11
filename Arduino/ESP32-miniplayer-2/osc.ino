@@ -159,6 +159,9 @@ bool osc_parsePacket(String command, IPAddress remote ) {
 //
 void osc_beacon(WiFiUDP udp_out)
 {
+  char mac[18] = { 0 }; 
+  sprintf(mac, "%02X:%02X:%02X", WiFi.BSSID()[3], WiFi.BSSID()[4], WiFi.BSSID()[5]);
+ 
   udp_out.beginPacket(serverIP, send_port);
 
   // OSC over UDP
@@ -176,6 +179,8 @@ void osc_beacon(WiFiUDP udp_out)
   msg.add(audio_error().c_str());
   msg.add(stm32_batteryLevel());
   msg.add(sync_getStatus().c_str());
+  msg.add(WiFi.RSSI());
+  msg.add(mac);
   msg.send(udp_out);
 
   udp_out.endPacket();

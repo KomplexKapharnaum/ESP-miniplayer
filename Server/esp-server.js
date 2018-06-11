@@ -391,8 +391,11 @@ class Server extends Worker {
         media: message['args'][7],
         error: message['args'][8],
         battery: message['args'][9],
-        syncerror: message['args'][10]
+        syncerror: message['args'][10],
+        rssi: message['args'][11],
+        bssid: message['args'][12]
       }
+      // console.log(message['args'][12])
 
       var id = info['id'];
 

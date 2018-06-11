@@ -81,7 +81,7 @@
 
         ///////////
 
-        // CHANNEL
+        // Centrale
         class Centrale {
           constructor() {
             this.channels=[]
@@ -125,11 +125,13 @@
               $('<div class="channel-tools">')
                 .append( $('<button class="testbtn">test</button>').on('click', function() {socket.emit('channel.test', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button class="stopbtn">stop</button>').on('click', function() {socket.emit('channel.stop', this.nchan)}.bind({nchan:nchan}) ))
+                .append('<br />')
                 .append( $('<button class="loopbtn">loop</button>').on('click', function() {socket.emit('channel.loop', this.nchan)}.bind({nchan:nchan}) ))
                 .append( $('<button class="emulbtn">emul</button>').on('click', function() {socket.emit('channel.emul', this.nchan)}.bind({nchan:nchan}) ))
                 .append('<br />')
+                .append('<br />')
                 .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('channel.reset', this.nchan)}.bind({nchan:nchan}) ))
-                .append( $('<button class="stopbtn">shutdown</button>"').on('click', function() {if (confirm("Shutdown Channel ?")) socket.emit('channel.shutdown', this.nchan)}.bind({nchan:nchan}) ))
+                .append( $('<button class="stopbtn">OFF</button>"').on('click', function() {if (confirm("Shutdown Channel ?")) socket.emit('channel.shutdown', this.nchan)}.bind({nchan:nchan}) ))
                 .appendTo(ch_ctrl)
 
             this.deviceblock = $('<div class="devices">').appendTo(ch_blk)
@@ -258,6 +260,8 @@
                     .appendTo(cli_blk)
 
             $('<div class="subheader player-battery">').appendTo(cli_blk)
+            $('<div class="subheader player-rssi">').appendTo(cli_blk)
+            $('<div class="subheader player-bssid">').appendTo(cli_blk)
             $('<div class="subheader player-media">').appendTo(cli_blk)
             $('<div class="subheader player-error">').addClass('red').appendTo(cli_blk)
             $('<div class="subheader player-syncerror">').addClass('red').appendTo(cli_blk)
@@ -268,7 +272,7 @@
               .append('<br />')
               .append( $('<button class="resetbtn">reset</button>"').on('click', function() {socket.emit('player.reset', id)} ))
               .append( $('<button class="stopbtn">off</button>"').on('click', function() { if (confirm("Shutdown player ?")) socket.emit('player.shutdown', id)} ))
-              .append('<br />')
+              .append('<br /><small>channel: </small>')
               .append( $('<input type="number" value="'+nchan+'" size="2" />"').on('change', function() {
                 socket.emit('player.channel', id, $(this).val())
                 that.mainblock.remove()
@@ -307,16 +311,24 @@
             if (fileCount > 0) {
               var syncProgress = Math.round(cli['info']['sync']*100/fileCount)
               this.mainblock.find(".player-state").find('.sync').html(syncProgress+"%").removeClass('red yellow green')
-              if (syncProgress == 0) this.mainblock.find(".player-state").find('.sync').addClass("red")
-              else if (syncProgress < 100) this.mainblock.find(".player-state").find('.sync').addClass("yellow")
-              else this.mainblock.find(".player-state").find('.sync').addClass("green")
+              if (syncProgress == 0) this.mainblock.find(".player-state").find('.sync').hide()
+              else {
+                this.mainblock.find(".player-state").find('.sync').show()
+                if (syncProgress < 100) this.mainblock.find(".player-state").find('.sync').addClass("yellow")
+                else this.mainblock.find(".player-state").find('.sync').addClass("green")
+              }
             }
-            if (cli['info']['battery'] > 0) this.mainblock.find(".player-battery").html("battery: "+cli['info']['battery']+"%")
+            if (cli['info']['battery'] > 0 && cli['info']['battery'] != 66)
+              this.mainblock.find(".player-battery").html("battery: "+cli['info']['battery']+"%")
 
             // Media & error
             this.mainblock.find(".player-media").html(cli['info']['media']).removeClass('red yellow').addClass(cli['info']['media']=='stop'?"red":"yellow")
             this.mainblock.find(".player-error").html(cli['info']['error'])
             this.mainblock.find(".player-syncerror").html(cli['info']['syncerror'])
+
+            // Wifi
+            if (cli['info']['rssi'] !== undefined) this.mainblock.find(".player-rssi").html("wifi: "+cli['info']['rssi']+" dbm")
+            if (cli['info']['bssid'] !== undefined) this.mainblock.find(".player-bssid").html("bssid: "+cli['info']['bssid'])
 
           }
 
