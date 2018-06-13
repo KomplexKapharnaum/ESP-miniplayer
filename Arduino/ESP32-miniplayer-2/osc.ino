@@ -64,7 +64,7 @@ void osc_task( void * parameter ) {
       len = udp_in.read(incomingPacket, 1470);
       if (len >= 0) {
         incomingPacket[len] = 0;
-        //LOGF("UDP: packet received: %s\n", incomingPacket);
+        LOGF("UDP: packet received: %s\n", incomingPacket);
 
         // Parse Packet
         bool valid = osc_parsePacket(String(incomingPacket), udp_in.remoteIP());
@@ -132,6 +132,16 @@ bool osc_parsePacket(String command, IPAddress remote ) {
     audio_volume(osc_next(currentData).toInt());
     audio_play(mediaPath);
   }
+  else if (data == "playstream") {
+    /*String mediaURL = sd_getPathNote(osc_next(currentData).toInt(), osc_next(currentData).toInt());
+    audio_volume(osc_next(currentData).toInt());
+    audio_play(mediaPath);*/
+    audio_volume(osc_next(currentData).toInt());
+    audio_loop(true);
+    String mediaURL = "http://"+osc_next(currentData)+"/"+currentData;
+    audio_play(mediaURL, true);
+    LOG(mediaURL);
+  }
   else if (data == "playtest") {
     String mediaPath = "test.mp3";
     audio_volume(100);
@@ -174,10 +184,15 @@ void osc_beacon(WiFiUDP udp_out)
   msg.add(linkStatus);
   msg.add(audio_sdOK);
   msg.add(sync_size());
+  
   if (audio_media() != "") msg.add(audio_media().c_str());
   else msg.add("stop");
+  
   msg.add(audio_error().c_str());
-  msg.add(stm32_batteryLevel());
+  
+  if ( settings_get("model") > 0 ) msg.add(stm32_batteryLevel());
+  else msg.add(0);
+  
   msg.add(sync_getStatus().c_str());
   msg.add(WiFi.RSSI());
   msg.add(mac);
