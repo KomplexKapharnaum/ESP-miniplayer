@@ -12,12 +12,6 @@
 #define MP_VERSION  0.81  // Gain levels
 #define MP_VERSION  0.82  // Sync log
 #define MP_VERSION  0.83  // Sync ignore empty
-#define MP_VERSION  0.84  // Threaded audio + Mutexing everything
-#define MP_VERSION  0.86  // Reset if PCM fails to init
-#define MP_VERSION  0.87  // Channel change fix
-#define MP_VERSION  0.88  // Switch ON power line on start / Reset//Stop do switch OFF
-#define MP_VERSION  0.89  // Monitor AP mac + Wifi strength
-#define MP_VERSION  0.90  // Channel change fix + set wifi to kxkm24
 
 /*
    INCLUDES
@@ -37,51 +31,59 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 30);
-  //settings_set("channel", 15);
-  //settings_set("model", 1);   // 0: proto -- 1: big -- 2: small
+  //settings_set("id", 27);
+  //settings_set("channel", 1);
+  //settings_set("model", 1);
 
   // STM32
-  if ( settings_get("model") > 0 ) stm32_start();
+  if ( settings_get("model") > 0 ) stm32_setup();
   else LOGSETUP();
 
   // Wifi
   // wifi_static("192.168.0.237");
   //wifi_connect("interweb", "superspeed37");
-  wifi_connect("kxkm24");
+  //wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
+  wifi_connect("kxkm24nano");
   wifi_ota( "esp-" + osc_id() + " " + osc_ch() + " v" + String(MP_VERSION, 2) );
   wifi_onConnect(doOnConnect);
   //wifi_wait(5000, true);
 
   // SD
   if (!sd_setup()) {
-    LOG("No SD detected..");
-    //stm32_reset();
+    //LOG("No SD detected.. restarting");
+    //delay(500);
+    //ESP.restart();
   }
 
   // SCAN FILES
   sd_scanNotes();
 
+  /*for (byte i=0; i<16; i++)
+    for (byte j=0; j<128; j++) {
+      String file = sd_getPathNote(i, j);
+      if (file != "") {
+        LOGINL(file+" ");
+        LOG(SD.open(file).size());
+      }
+    }*/
+
   // Audio
-  if (!audio_setup()) {
-    LOG("Audio engine failed to start..");
-    stm32_reset();
-  }
-  audio_loop(false);
-  
+  audio_setup();
+  audio_loop(true);
 }
 
 /*
    LOOP
 */
 void loop() {
+
+  wifi_loop();
+
+  osc_loop();
+
   audio_run();
 
-  // write in memory: can't be done in thread ?
-  if (osc_newChan()) {
-    settings_set("channel", osc_chan());
-    osc_newChan(false);
-  }
+  stm32_loop();
 }
 
 
@@ -89,6 +91,6 @@ void loop() {
    on Connect
 */
 void doOnConnect() {
-  osc_start();
+  osc_setup();
 }
 

@@ -1,6 +1,8 @@
 //https://github.com/earlephilhower/ESP8266Audio
 //https://github.com/Gianbacchio/ESP8266_Spiram
 #include "AudioFileSourceSD.h"
+#include "AudioFileSourceHTTPStream.h"
+#include "AudioFileSourceBuffer.h"
 #include "AudioGeneratorMP3.h"
 #include "AudioOutputI2S.h"
 
@@ -11,6 +13,8 @@ PCM51xx pcm(Wire); //Using the default I2C address 0x74
 
 AudioGeneratorMP3 *mp3;
 AudioFileSourceSD *file;
+AudioFileSourceHTTPStream *stream;
+AudioFileSourceBuffer *buff;
 AudioOutputI2S *out;
 
 SemaphoreHandle_t audio_lock = xSemaphoreCreateMutex();
@@ -79,11 +83,19 @@ bool audio_setup()
   
   audio_volume(100);
   mp3 = new AudioGeneratorMP3();
+  mp3->RegisterStatusCB(audio_statusCB, (void*)"mp3");
+  file = NULL;
+  stream = NULL;
   audio_engineOK = pcmOK;
   return audio_engineOK;
 }
 
-bool audio_play(String filePath)
+bool audio_play(String filePath) 
+{
+  audio_play(filePath, false);
+}
+
+bool audio_play(String filePath, bool isStream)
 { 
   if (!audio_engineOK) {
     xSemaphoreTake(audio_lock, portMAX_DELAY);
@@ -95,9 +107,20 @@ bool audio_play(String filePath)
   if (audio_running()) audio_stop();
   if (filePath == "") return false;
 
+  bool isStarted = false;
   xSemaphoreTake(audio_lock, portMAX_DELAY);
-  file = new AudioFileSourceSD(filePath.c_str());
-  bool isStarted = mp3->begin(file, out);
+  if (isStream) {
+    stream = new AudioFileSourceHTTPStream(filePath.c_str());
+    stream->SetReconnect(10, 100);
+    //stream->RegisterStatusCB(audio_statusCB, (void*)"stream");
+    buff = new AudioFileSourceBuffer(stream, 1024*16);
+    buff->RegisterStatusCB(audio_statusCB, (void*)"buffer");
+    isStarted = mp3->begin(buff, out);
+  }
+  else {
+    file = new AudioFileSourceSD(filePath.c_str());
+    isStarted = mp3->begin(file, out);
+  }
   //pcm.unmute();
   xSemaphoreGive(audio_lock);
   
@@ -127,7 +150,14 @@ void audio_stop()
     xSemaphoreTake(audio_lock, portMAX_DELAY);
     //pcm.mute();
     mp3->stop();
-    file->close();
+    if (file != NULL) {
+      file->close();
+      file = NULL;
+    }
+    if (stream != NULL) {
+      stream->close();
+      stream = NULL;
+    }
     audio_currentFile = "";
     audio_errorPlayer = "";
     LOG("stop");
@@ -166,8 +196,13 @@ bool audio_run()
       xSemaphoreGive(audio_lock);
       return true;
     }
-    else if (audio_loopMedia && audio_currentFile != "") {
-      //audio_play(currentFile);
+    else if (stream != NULL && audio_currentFile != "") {
+      xSemaphoreGive(audio_lock);
+      audio_play(audio_currentFile, true);
+      LOG("reconnect stream: " + audio_currentFile);
+      return true;
+    }
+    else if (audio_loopMedia && audio_currentFile != "" && file != NULL) {
       file->seek(0, SEEK_SET);
       LOG("loop: " + audio_currentFile);
       xSemaphoreGive(audio_lock);
@@ -202,3 +237,13 @@ String audio_error() {
   return c;
 }
 
+// Called when there's a warning or error (like a buffer underflow or decode hiccup)
+void audio_statusCB(void *cbData, int code, const char *string)
+{
+  const char *ptr = reinterpret_cast<const char *>(cbData);
+  // Note that the string may be in PROGMEM, so copy it to RAM for printf
+  char s1[64];
+  strncpy_P(s1, string, sizeof(s1));
+  s1[sizeof(s1)-1]=0;
+  LOGF3("STATUS(%s) '%d' = '%s'\n", ptr, code, s1);
+}

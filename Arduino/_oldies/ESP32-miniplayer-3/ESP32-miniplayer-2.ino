@@ -17,7 +17,7 @@
 #define MP_VERSION  0.87  // Channel change fix
 #define MP_VERSION  0.88  // Switch ON power line on start / Reset//Stop do switch OFF
 #define MP_VERSION  0.89  // Monitor AP mac + Wifi strength
-#define MP_VERSION  0.90  // Channel change fix + set wifi to kxkm24
+#define MP_VERSION  0.90  // Icecast streaming
 
 /*
    INCLUDES
@@ -37,9 +37,9 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 30);
-  //settings_set("channel", 15);
-  //settings_set("model", 1);   // 0: proto -- 1: big -- 2: small
+  //settings_set("id", 137);
+  //settings_set("channel", 1);
+  //settings_set("model", 0);   // 0: proto -- 1: big -- 2: small
 
   // STM32
   if ( settings_get("model") > 0 ) stm32_start();
@@ -48,7 +48,8 @@ void setup() {
   // Wifi
   // wifi_static("192.168.0.237");
   //wifi_connect("interweb", "superspeed37");
-  wifi_connect("kxkm24");
+  //wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
+  wifi_connect("kxkm24nano");
   wifi_ota( "esp-" + osc_id() + " " + osc_ch() + " v" + String(MP_VERSION, 2) );
   wifi_onConnect(doOnConnect);
   //wifi_wait(5000, true);

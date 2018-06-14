@@ -118,7 +118,7 @@ void _wifi_event(WiFiEvent_t event) {
 /*
  * Wifi LOOP
  */
-void wifi_otaCheck() {
+void wifi_loop() {
   // Run OTA
   if (wifi_otaEnable && wifi_available) ArduinoOTA.handle();
 }
