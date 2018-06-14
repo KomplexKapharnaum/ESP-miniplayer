@@ -1,5 +1,8 @@
 //https://github.com/earlephilhower/ESP8266Audio
+//https://github.com/Gianbacchio/ESP8266_Spiram
 #include "AudioFileSourceSD.h"
+#include "AudioFileSourceHTTPStream.h"
+#include "AudioFileSourceBuffer.h"
 #include "AudioGeneratorMP3.h"
 #include "AudioOutputI2S.h"
 
@@ -10,18 +13,23 @@ PCM51xx pcm(Wire); //Using the default I2C address 0x74
 
 AudioGeneratorMP3 *mp3;
 AudioFileSourceSD *file;
+AudioFileSourceHTTPStream *stream;
+AudioFileSourceBuffer *buff;
 AudioOutputI2S *out;
+
+SemaphoreHandle_t audio_lock = xSemaphoreCreateMutex();
 
 String audio_currentFile = "";
 bool audio_loopMedia = false;
 bool audio_sdOK = false;
+bool audio_engineOK = false;
 String audio_errorPlayer = "";
 
 int gainMin = 120;
 int gainMax = 60;
 
 bool audio_setup()
-{
+{   
   if (SD.exists("/")) audio_sdOK = true;
   else audio_sdOK = sd_setup();
 
@@ -46,6 +54,7 @@ bool audio_setup()
   //out->SetRate(44100);
 
   // KXKM card: using PCM51xx
+  bool pcmOK = true;
   if ( settings_get("model") > 0 ) {
     out->SetPinout(25, 27, 26); //HW dependent ! BCK, LRCK, DATA
     out->SetGain( 1 );
@@ -68,47 +77,102 @@ bool audio_setup()
         LOG(pcm.getPowerState());
         LOG("Check that the sample rate / bit depth combination is supported.");
       }
+      pcmOK = false;
     }
   }
   
   audio_volume(100);
   mp3 = new AudioGeneratorMP3();
-  return audio_sdOK;
+  mp3->RegisterStatusCB(audio_statusCB, (void*)"mp3");
+  
+  file = NULL;
+  stream = NULL;
+  
+  audio_engineOK = pcmOK;
+  return audio_engineOK;
 }
 
-bool audio_play(String filePath)
+bool audio_play(String filePath) 
 {
-  if (mp3->isRunning()) audio_stop();
+  audio_play(filePath, false);
+}
+
+bool audio_play(String filePath, bool isStream)
+{ 
+  if (!audio_engineOK) {
+    xSemaphoreTake(audio_lock, portMAX_DELAY);
+    audio_errorPlayer = "engine not ready";
+    xSemaphoreGive(audio_lock);
+    return false;
+  }
+  
+  if (audio_running()) audio_stop();
   if (filePath == "") return false;
 
-  file = new AudioFileSourceSD(filePath.c_str());
-  if (mp3->begin(file, out)) {
+  bool isStarted = false;
+  xSemaphoreTake(audio_lock, portMAX_DELAY);
+  if (isStream) {
+    stream = new AudioFileSourceHTTPStream(filePath.c_str());
+    stream->SetReconnect(10, 100);
+    //stream->RegisterStatusCB(audio_statusCB, (void*)"stream");
+    buff = new AudioFileSourceBuffer(stream, 1024*16);
+    buff->RegisterStatusCB(audio_statusCB, (void*)"buffer");
+    isStarted = mp3->begin(buff, out);
+  }
+  else {
+    file = new AudioFileSourceSD(filePath.c_str());
+    isStarted = mp3->begin(file, out);
+  }
+  //pcm.unmute();
+  xSemaphoreGive(audio_lock);
+  
+  if (isStarted) {
+    xSemaphoreTake(audio_lock, portMAX_DELAY);
     audio_currentFile = filePath;
     audio_errorPlayer = "";
+    xSemaphoreGive(audio_lock);
     LOG("play: " + filePath);
-    return true;
   }
   else {
     LOG("not found: " + filePath);
+    xSemaphoreTake(audio_lock, portMAX_DELAY);
     audio_errorPlayer = "not found (" + filePath + ")";
+    xSemaphoreGive(audio_lock);
     audio_stop();
-    return false;
   }
+  
+  return isStarted;
 }
 
 void audio_stop()
 {
-  if (!mp3->isRunning()) return;
-  mp3->stop();
-  file->close();
-  audio_currentFile = "";
-  audio_errorPlayer = "";
-  LOG("stop");
+  if (!audio_engineOK) return;
+  
+  if (audio_running()) {
+    xSemaphoreTake(audio_lock, portMAX_DELAY);
+    //pcm.mute();
+    mp3->stop();
+    if (file != NULL) {
+      file->close();
+      file = NULL;
+    }
+    if (stream != NULL) {
+      stream->close();
+      stream = NULL;
+    }
+    audio_currentFile = "";
+    audio_errorPlayer = "";
+    LOG("stop");
+    xSemaphoreGive(audio_lock);
+  }
 }
 
 void audio_volume(int vol)
-{
+{ 
+  if (!audio_engineOK) return;
+  
   LOGF("GAIN: %i\n", vol);
+  xSemaphoreTake(audio_lock, portMAX_DELAY);
   if (settings_get("model") > 0) {
     vol = map(vol, 0, 100, gainMin, gainMax);
     pcm.setVolume(vol);
@@ -118,6 +182,7 @@ void audio_volume(int vol)
     out->SetGain(v);
     LOGF("gain: %f\n", v);
   }
+  xSemaphoreGive(audio_lock);
 }
 
 void audio_loop(bool doLoop)
@@ -127,23 +192,60 @@ void audio_loop(bool doLoop)
 
 bool audio_run()
 {
-  if (mp3->isRunning()) {
-    if (mp3->loop()) return true;
-    else if (audio_loopMedia && audio_currentFile != "") {
-      //audio_play(currentFile);
-      file->seek(0, SEEK_SET);
-      LOG("loop: " + audio_currentFile);
+  if (audio_running()) {
+    xSemaphoreTake(audio_lock, portMAX_DELAY);
+    if (mp3->loop()) {
+      xSemaphoreGive(audio_lock);
       return true;
     }
-    else audio_stop();
+    else if (stream != NULL && audio_currentFile != "") {
+      xSemaphoreGive(audio_lock);
+      audio_play(audio_currentFile, true);
+      LOG("reconnect stream: " + audio_currentFile);
+      return true;
+    }
+    else if (audio_loopMedia && audio_currentFile != "" && file != NULL) {
+      file->seek(0, SEEK_SET);
+      LOG("loop: " + audio_currentFile);
+      xSemaphoreGive(audio_lock);
+      return true;
+    }
+    else {
+      xSemaphoreGive(audio_lock);
+      audio_stop();
+      return false;
+    }
   }
-  return false;
 }
 
 bool audio_running() {
-  return mp3->isRunning();
+  xSemaphoreTake(audio_lock, portMAX_DELAY);
+  bool r = mp3->isRunning();
+  xSemaphoreGive(audio_lock);
+  return r;
 }
 
 String audio_media() {
-  return audio_currentFile;
+  xSemaphoreTake(audio_lock, portMAX_DELAY);
+  String c = audio_currentFile;
+  xSemaphoreGive(audio_lock);
+  return c;
+}
+
+String audio_error() {
+  xSemaphoreTake(audio_lock, portMAX_DELAY);
+  String c = audio_errorPlayer;
+  xSemaphoreGive(audio_lock);
+  return c;
+}
+
+// Called when there's a warning or error (like a buffer underflow or decode hiccup)
+void audio_statusCB(void *cbData, int code, const char *string)
+{
+  const char *ptr = reinterpret_cast<const char *>(cbData);
+  // Note that the string may be in PROGMEM, so copy it to RAM for printf
+  char s1[64];
+  strncpy_P(s1, string, sizeof(s1));
+  s1[sizeof(s1)-1]=0;
+  LOGF3("STATUS(%s) '%d' = '%s'\n", ptr, code, s1);
 }

@@ -1,5 +1,5 @@
 /*
-   SETTINGS
+   VERSION
 */
 #define MP_VERSION  0.72  // Sync on demand
 #define MP_VERSION  0.73  // Sync unFreeze
@@ -12,6 +12,12 @@
 #define MP_VERSION  0.81  // Gain levels
 #define MP_VERSION  0.82  // Sync log
 #define MP_VERSION  0.83  // Sync ignore empty
+#define MP_VERSION  0.84  // Threaded audio + Mutexing everything
+#define MP_VERSION  0.86  // Reset if PCM fails to init
+#define MP_VERSION  0.87  // Channel change fix
+#define MP_VERSION  0.88  // Switch ON power line on start / Reset//Stop do switch OFF
+#define MP_VERSION  0.89  // Monitor AP mac + Wifi strength
+//#define MP_VERSION  0.90  // Icecast streaming
 
 /*
    INCLUDES
@@ -31,12 +37,12 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 27);
+  //settings_set("id", 137);
   //settings_set("channel", 1);
-  //settings_set("model", 1);
+  //settings_set("model", 0);   // 0: proto -- 1: big -- 2: small
 
   // STM32
-  if ( settings_get("model") > 0 ) stm32_setup();
+  if ( settings_get("model") > 0 ) stm32_start();
   else LOGSETUP();
 
   // Wifi
@@ -50,40 +56,33 @@ void setup() {
 
   // SD
   if (!sd_setup()) {
-    //LOG("No SD detected.. restarting");
-    //delay(500);
-    //ESP.restart();
+    LOG("No SD detected..");
+    //stm32_reset();
   }
 
   // SCAN FILES
   sd_scanNotes();
 
-  /*for (byte i=0; i<16; i++)
-    for (byte j=0; j<128; j++) {
-      String file = sd_getPathNote(i, j);
-      if (file != "") {
-        LOGINL(file+" ");
-        LOG(SD.open(file).size());
-      }
-    }*/
-
   // Audio
-  audio_setup();
-  audio_loop(true);
+  if (!audio_setup()) {
+    LOG("Audio engine failed to start..");
+    stm32_reset();
+  }
+  audio_loop(false);
+  
 }
 
 /*
    LOOP
 */
 void loop() {
-
-  wifi_loop();
-
-  osc_loop();
-
   audio_run();
 
-  stm32_loop();
+  // write in memory: can't be done in thread ?
+  if (osc_newChan()) {
+    settings_set("channel", osc_chan());
+    osc_newChan(false);
+  }
 }
 
 
@@ -91,6 +90,6 @@ void loop() {
    on Connect
 */
 void doOnConnect() {
-  osc_setup();
+  osc_start();
 }
 

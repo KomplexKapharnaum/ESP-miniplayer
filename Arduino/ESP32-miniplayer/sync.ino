@@ -1,5 +1,5 @@
 #include <HTTPClient.h>
-#include "UDHttp.h"
+#include "UDHttp.h"  // Manual dl from https://github.com/nhatuan84/esp-upload-download-file-http
 
 enum : int { 
   SYNC_NOLINK = -1,
@@ -18,7 +18,8 @@ File dlFile;
 
 int bank_stamp[MAX_BANK] = {0};
 
-String sync_error = "";
+String sync_statusMsg = "";
+SemaphoreHandle_t sync_lock = xSemaphoreCreateMutex();
 
 void sync_do(int stamp) {
   
@@ -39,9 +40,9 @@ void sync_do(int stamp) {
 }
 
 void sync_task(void * parameter) {
-  sd_scanNotes();  // re-scan SD card
+  
   LOG("\nSyncing...");
-  sync_error = "Syncing..";
+  sync_setStatus("Syncing..");
 
   for (byte bank = 0; bank < MAX_BANK; bank++) {
     LOG("Syncing BANK " + String(bank));
@@ -52,23 +53,26 @@ void sync_task(void * parameter) {
   LOG("Sync done: " + String(sync_count) + " files");
   sd_scanNotes();  // re-scan SD card
 
-  sync_error = "";
+  sync_setStatus("");
   vTaskDelete( NULL );
 }
 
 void sync_bankCheck(byte bank) {
 
-  sync_error = "Get bank"+String(bank);
+  sync_setStatus("Get bank"+String(bank));
   HTTPClient http;
   http.setTimeout(5000);
+  
+  xSemaphoreTake(sync_lock, portMAX_DELAY);
   http.begin(sync_host, 3742, "/listbank/"+String(bank));
+  xSemaphoreGive(sync_lock);
   
   if (http.GET() != 200) {
     LOG("Sync: can't get files list");
-    sync_error = "Can't get list Bank "+String(bank);
+    sync_setStatus("Can't get list Bank "+String(bank));
     return;
   }
-  sync_error = "Scanning Bank "+String(bank);
+  sync_setStatus("Scanning Bank "+String(bank));
 
   String fileList = http.getString();
   http.end();
@@ -81,7 +85,7 @@ void sync_bankCheck(byte bank) {
     //LOG("payload: "+payload);
     yield();
   }
-  sync_error = "Done bank"+String(bank);
+  sync_setStatus("Done bank"+String(bank));
 }
 
 void sync_fileCheck(String payload) {
@@ -97,28 +101,28 @@ void sync_fileCheck(String payload) {
   //LOG(payload);
   //LOG("file "+file+" size "+String(fsize));
   
-  if (fsize == 0) return;
+  if (fsize == 0) return; // skip empty file on remote 
   
-  sync_error = "Checking file "+file;
+  sync_setStatus("Checking file "+file);
 
   // check Size
   if (fsize == sd_noteSize(bank, note)) {
     if (fsize > 0) {
       LOG("ok " + file);
-      sync_error = "File ok "+file;
+      sync_setStatus("File ok "+file);
       sync_count += 1;
     }
     return;
   }
 
   // Delete wrong size file
-  sync_error = "Delete file "+file;
+  sync_setStatus("Delete file "+file);
   sd_noteDelete(bank, note);
 
   // missing file: download it
   if (fsize > 0) {
     LOG("missing " + file + " (" + String(fsize) + ")");
-    sync_error = "Missing file "+file;
+    sync_setStatus("Missing file "+file);
 
     if ( !SD.exists("/"+pad3(bank)) ) {
       LOG("Creating directory /" + pad3(bank));
@@ -133,12 +137,14 @@ void sync_fileCheck(String payload) {
     LOG("downloading "+file);
     
     char url[100];
+    xSemaphoreTake(sync_lock, portMAX_DELAY);
     ("http://"+String(sync_host)+":3742/get"+file).toCharArray(url, 100);
+    xSemaphoreGive(sync_lock);
     byte retry = 0;
     int result = -1;
     while(retry<5 && result<0) {
-      if (retry > 0) sync_error = "Retrying file "+String(file);
-      else sync_error = "Get file "+String(file);
+      if (retry > 0) sync_setStatus("Retrying file "+String(file));
+      else sync_setStatus("Get file "+String(file));
       result = udh.download(url, sync_writeData, sync_progress);
       retry += 1;
     }
@@ -149,11 +155,11 @@ void sync_fileCheck(String payload) {
       if (timed == 0) timed += 1;
       LOG("download done: " + String(dlSize / 1024) + "kB in " + String(timed / 1000) + "s -> " + String((dlSize / 1024) * 1000 / timed) + "kB/s");
       sync_count += 1;
-      sync_error = "Done file "+String(file);
+      sync_setStatus("Done file "+String(file));
     }
     else {
       LOG("Download error");
-      sync_error = "Abort file "+String(file);
+      sync_setStatus("Abort file "+String(file));
     }
   }
 
@@ -170,12 +176,14 @@ void sync_progress(int percent){
     //LOGF("%d\n", percent);
     lastPct = percent;
   }
-  sync_error = String(percent)+"%";
+  sync_setStatus(String(percent)+"%");
 }
 
 void sync_setHost(IPAddress host) {
   if (sync_state != SYNC_NOLINK) return; // already got an host
+  xSemaphoreTake(sync_lock, portMAX_DELAY);
   sprintf(sync_host, "%d.%d.%d.%d", host[0], host[1], host[2], host[3]);
+  xSemaphoreGive(sync_lock);
   sync_state = SYNC_WAIT;
 }
 
@@ -188,8 +196,17 @@ int sync_getState() {
   return sync_state;
 }
 
-String sync_errorMsg() {
-  return sync_error;
+void sync_setStatus(String statusMsg) {
+  xSemaphoreTake(sync_lock, portMAX_DELAY);
+  sync_statusMsg = statusMsg;
+  xSemaphoreGive(sync_lock);
+}
+
+String sync_getStatus() {
+  xSemaphoreTake(sync_lock, portMAX_DELAY);
+  String statu = sync_statusMsg;
+  xSemaphoreGive(sync_lock);
+  return statu;
 }
 
 

@@ -1,25 +1,22 @@
 #include <WiFiUdp.h>
 #include <OSCMessage.h> //https://github.com/stahlnow/OSCLib-for-ESP8266
 
-WiFiUDP udp_in;
-WiFiUDP udp_out;
-
 const int recv_port = 10000;
 const int send_port = 12000;
-unsigned long last_beacon = 0;
+
+bool osc_running = false;
 
 IPAddress serverIP;
-char incomingPacket[1472];
-String currentData;
-
-IPAddress linkIP;
 bool linkStatus = false;
 String lastPacket = "";
 
-void osc_setup()
-{
-  udp_in.begin(recv_port);
+bool osc_newChannel = false;
+int osc_channel = 0;
 
+void osc_start() {
+
+  osc_channel = settings_get("channel");
+  
   IPAddress myIP = WiFi.localIP();
   IPAddress mask = WiFi.subnetMask();
 
@@ -30,92 +27,151 @@ void osc_setup()
 
   LOGINL("OSC: Broadcasting on ");
   LOG(serverIP);
+  
+  osc_running = true;
+
+  xTaskCreatePinnedToCore(
+    osc_task,   /* Function to implement the task */
+    "osc_task", /* Name of the task */
+    10000,       /* Stack size in words */
+    NULL,       /* Task input parameter */
+    1,          /* Priority of the task */
+    NULL,       /* Task handle. */
+    0);         /* Core where the task should run */
 }
 
-void osc_loop()
-{
-  int packetSize = udp_in.parsePacket();
-  if (packetSize)
-  {
-    //Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
-    int len = udp_in.read(incomingPacket, 1470);
-    if (len >= 0) incomingPacket[len] = 0;
-    else return;
+void osc_task( void * parameter ) {
 
-    //LOGF("UDP: packet received: %s\n", incomingPacket);
+  unsigned long last_beacon = 0;
 
-    currentData = String(incomingPacket);
-    String data = osc_next();
+  // input socket
+  WiFiUDP udp_in;
+  udp_in.begin(recv_port);
+  char incomingPacket[1472];
+  int len;
 
-    // Check /esp
-    data = osc_next();
-    if ( data != "esp") {
-      LOGF("Invalid packet: %s\n", incomingPacket);
-      return osc_clear();
-    }
+  // output socket
+  WiFiUDP udp_out;
 
-    // Check MSG-COUNTER or /manual
-    data = osc_next();
-    if (data != "manual") {
-      if ( data == lastPacket) {
-        //LOG("Already played");
-        return osc_clear();
+  // loop
+  while (true) {
+    if (!osc_running) break;
+
+    // Check if incoming packets
+    if (udp_in.parsePacket()) {
+
+      //Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
+      len = udp_in.read(incomingPacket, 1470);
+      if (len >= 0) {
+        incomingPacket[len] = 0;
+        LOGF("UDP: packet received: %s\n", incomingPacket);
+
+        // Parse Packet
+        bool valid = osc_parsePacket(String(incomingPacket), udp_in.remoteIP());
+
+        // Set Server IP
+        if (valid && !linkStatus) {
+          //serverIP = udp_in.remoteIP();
+          linkStatus = true;
+        }
       }
-      lastPacket = data;
     }
 
-    // Set Server IP
-    linkIP = udp_in.remoteIP();
-    if (!linkStatus) {
-      linkStatus = true;
-    }
-    
-    // Check identity
-    data = osc_next();
-    if (data != osc_id() && data != "all" && data != osc_ch()) {
-      LOG("Not for me ... ");
-      return osc_clear();
+    // Beacon out
+    if ((millis() - last_beacon) > 800) {
+      osc_beacon(udp_out);
+      last_beacon = millis();
     }
 
-    // Command
-    data = osc_next();
-    if (data == "hello") ;
-    else if (data == "sync") {
-      sync_setHost(linkIP);
-      sync_do(osc_next().toInt());
-    }
-    else if (data == "stop") audio_stop();
-    else if (data == "play") {
-      String mediaPath = sd_getPathNote(osc_next().toInt(), osc_next().toInt());
-      audio_volume(osc_next().toInt());
-      audio_play(mediaPath);
-    }
-    else if (data == "playtest") {
-      String mediaPath = "test.mp3";
-      audio_volume(100);
-      audio_play(mediaPath);
-    }
-    else if (data == "volume") audio_volume(osc_next().toInt());
-    else if (data == "setchannel") settings_set("channel", osc_next().toInt());
-    else if (data == "setid") settings_set("id", osc_next().toInt());
-    else if (data == "loop") audio_loop((bool) osc_next().toInt());
-    else if (data == "reset") stm32_reset();
-    else if (data == "shutdown") stm32_shutdown();
-    else LOGF ("Command unknown: %s\n", data.c_str());
-
-    return osc_clear();
+    // yield();
+    wifi_otaCheck();
+    delay(1);
   }
 
-  osc_beacon();
+  vTaskDelete(NULL);
 }
+
+bool osc_parsePacket(String command, IPAddress remote ) {
+  String currentData = command;
+  String data = osc_next(currentData);
+
+  // Check /esp
+  data = osc_next(currentData);
+  if ( data != "esp") {
+    LOGF("Invalid packet: %s\n", command);
+    return false;
+  }
+
+  // Check MSG-COUNTER or /manual
+  data = osc_next(currentData);
+  if (data != "manual") {
+    if ( data == lastPacket) {
+      //LOG("Already played");
+      return false;
+    }
+    lastPacket = data;
+  }
+
+  // Check identity
+  data = osc_next(currentData);
+  if (data != osc_id() && data != "all" && data != osc_ch()) {
+    LOG("Not for me ... ");
+    return false;
+  }
+
+  // Command
+  data = osc_next(currentData);
+  if (data == "hello") ;
+  else if (data == "sync") {
+    sync_setHost(remote);
+    sync_do(osc_next(currentData).toInt());
+  }
+  else if (data == "stop") audio_stop();
+  else if (data == "play") {
+    String mediaPath = sd_getPathNote(osc_next(currentData).toInt(), osc_next(currentData).toInt());
+    audio_volume(osc_next(currentData).toInt());
+    audio_play(mediaPath);
+  }
+  else if (data == "playstream") {
+    /*String mediaURL = sd_getPathNote(osc_next(currentData).toInt(), osc_next(currentData).toInt());
+    audio_volume(osc_next(currentData).toInt());
+    audio_play(mediaPath);*/
+    audio_volume(osc_next(currentData).toInt());
+    audio_loop(true);
+    String mediaURL = "http://"+osc_next(currentData)+"/"+currentData;
+    audio_play(mediaURL, true);
+    LOG(mediaURL);
+  }
+  else if (data == "playtest") {
+    String mediaPath = "test.mp3";
+    audio_volume(100);
+    audio_play(mediaPath);
+  }
+  else if (data == "volume") audio_volume(osc_next(currentData).toInt());
+  else if (data == "setchannel") {
+    if (!osc_newChannel) {
+      osc_channel = osc_next(currentData).toInt();
+      osc_newChannel = true;
+    }
+  }
+  else if (data == "setid") settings_set("id", osc_next(currentData).toInt());
+  else if (data == "loop") audio_loop((bool) osc_next(currentData).toInt());
+  else if (data == "reset") stm32_reset();
+  else if (data == "shutdown") stm32_shutdown();
+  else LOGF ("Command unknown: %s\n", data.c_str());
+
+  return true;
+}
+
 
 //
 // Send info beacon as heartbeat (status and autodiscovery)
 //
-void osc_beacon()
+void osc_beacon(WiFiUDP udp_out)
 {
-  if ((millis() - last_beacon) < 800) return;
-
+  char mac[18] = { 0 }; 
+  sprintf(mac, "%02X:%02X:%02X", WiFi.BSSID()[3], WiFi.BSSID()[4], WiFi.BSSID()[5]);
+ 
   udp_out.beginPacket(serverIP, send_port);
 
   // OSC over UDP
@@ -128,15 +184,21 @@ void osc_beacon()
   msg.add(linkStatus);
   msg.add(audio_sdOK);
   msg.add(sync_size());
-  if (audio_currentFile != "") msg.add(audio_currentFile.c_str());
+  
+  if (audio_media() != "") msg.add(audio_media().c_str());
   else msg.add("stop");
-  msg.add(audio_errorPlayer.c_str());
-  msg.add(stm32_batteryLevel());
-  msg.add(sync_errorMsg().c_str());
+  
+  msg.add(audio_error().c_str());
+  
+  if ( settings_get("model") > 0 ) msg.add(stm32_batteryLevel());
+  else msg.add(0);
+  
+  msg.add(sync_getStatus().c_str());
+  msg.add(WiFi.RSSI());
+  msg.add(mac);
   msg.send(udp_out);
 
   udp_out.endPacket();
-  last_beacon = millis();
 
   //LOG("beacon");
 }
@@ -144,7 +206,7 @@ void osc_beacon()
 //
 // Unpack /esp/manual/who/how/what
 //
-String osc_next() {
+String osc_next(String& currentData) {
   String dataCopy(currentData.c_str());
   for (int i = 0; i < dataCopy.length(); i++) {
     if (dataCopy.substring(i, i + 1) == "/") {
@@ -153,16 +215,10 @@ String osc_next() {
       break;
     }
   }
-  osc_clear();
+  currentData = "";
   return dataCopy;
 }
 
-//
-// Clear data received buffer
-//
-void osc_clear() {
-  currentData = "";
-}
 
 String osc_id() {
   return String(settings_get("id"));
@@ -180,8 +236,17 @@ bool osc_isLinked() {
   return linkStatus;
 }
 
-IPAddress osc_iplink() {
-  return linkIP;
+bool osc_newChan() {
+  return osc_newChannel;
 }
+
+void osc_newChan(bool doit) {
+  osc_newChannel = doit;
+}
+
+int osc_chan() {
+  return osc_channel;
+}
+
 
 

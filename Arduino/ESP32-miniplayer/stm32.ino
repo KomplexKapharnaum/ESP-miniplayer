@@ -1,61 +1,91 @@
 
-const unsigned long BATTERY_CHECK_PERIOD_MS = 10000;
-const unsigned long BUTTON_CHECK_PERIOD_MS = 200;
+const int CHECK_PERIOD = 20000;      // task loop in ms
+const int CHECKTICK_BATTERY = 1; // x CHECK_PERIOD = duration in ms
+
+SemaphoreHandle_t stm32_lock;
 
 int battery = 0;
-bool started = false;
+bool stm32_running = false;
 
-void stm32_setup() {
+void stm32_start() {
+  if (stm32_running) return;
+  
   Serial.begin(115200, SERIAL_8N1);
   Serial.setTimeout(10);
-  started = true;
+
+  stm32_lock = xSemaphoreCreateMutex();
+  stm32_running = true;
+
+  xTaskCreatePinnedToCore(
+                    stm32_task,   /* Function to implement the task */
+                    "stm32_task", /* Name of the task */
+                    1000,       /* Stack size in words */
+                    NULL,       /* Task input parameter */
+                    0,          /* Priority of the task */
+                    NULL,       /* Task handle. */
+                    0);         /* Core where the task should run */
 }
 
+void stm32_task( void * parameter ) {
 
-void stm32_loop() {
-  if (!started) return;
-  static unsigned long lastBatteryCheck, lastButtonCheck;
-  if (millis() - lastBatteryCheck > BATTERY_CHECK_PERIOD_MS)
-  {
-    lastBatteryCheck = millis();
-    //stm32_sendSerialCommand(KXKM_STM32_Energy::GET_BATTERY_VOLTAGE);
-    //stm32_readSerialAnswer();
+  int tickerBattery = 0;
+  int event;
 
-    stm32_sendSerialCommand(KXKM_STM32_Energy::GET_BATTERY_PERCENTAGE);
-    battery = stm32_readSerialAnswer();
-    LOG("Battery: "+String(battery)+"%");
-  }
-
-  if (millis() - lastButtonCheck > BUTTON_CHECK_PERIOD_MS)
-  {
-    lastButtonCheck = millis();
-    stm32_sendSerialCommand(KXKM_STM32_Energy::GET_BUTTON_EVENT);
-    int event = stm32_readSerialAnswer();
+  xSemaphoreTake(stm32_lock, portMAX_DELAY);
+  stm32_sendSerialCommand(KXKM_STM32_Energy::SET_LOAD_SWITCH, 1);
+  xSemaphoreGive( stm32_lock );
+  
+  // loop
+  while (true) {
+    xSemaphoreTake(stm32_lock, portMAX_DELAY);
+    if (!stm32_running) {
+      xSemaphoreGive( stm32_lock );
+      break;
+    }
     
-    if (event == KXKM_STM32_Energy::BUTTON_DOUBLE_CLICK_EVENT)
-    {
-      LOG("BTN click");
-      
+    // check Button
+    stm32_sendSerialCommand(KXKM_STM32_Energy::GET_BUTTON_EVENT);
+    event = stm32_readSerialAnswer();
+    if (event == KXKM_STM32_Energy::BUTTON_DOUBLE_CLICK_EVENT) LOG("BTN click");
+    else if (event == KXKM_STM32_Energy::BUTTON_CLICK_EVENT) LOG("BTN double-click");
+
+    // check Battery
+    tickerBattery -= 1;
+    if (tickerBattery <= 0) {
+      stm32_sendSerialCommand(KXKM_STM32_Energy::GET_BATTERY_PERCENTAGE);
+      battery = stm32_readSerialAnswer();
+      LOG("Battery: " + String(battery) + "%");
+      tickerBattery = CHECKTICK_BATTERY;
     }
-    else if (event == KXKM_STM32_Energy::BUTTON_CLICK_EVENT)
-    {
-      LOG("BTN double-click");
-    }
+
+    xSemaphoreGive( stm32_lock );
+    delay(CHECK_PERIOD);
   }
+  vTaskDelete(NULL);
 }
 
 byte stm32_batteryLevel() {
-  return battery;
+  xSemaphoreTake(stm32_lock, portMAX_DELAY);
+  byte batt = battery;
+  xSemaphoreGive( stm32_lock );
+  return batt;
 }
 
 void stm32_reset() {
+  xSemaphoreTake(stm32_lock, portMAX_DELAY);
+  stm32_sendSerialCommand(KXKM_STM32_Energy::SET_LOAD_SWITCH, 0);
+  delay(500);
   stm32_sendSerialCommand(KXKM_STM32_Energy::REQUEST_RESET);
+  xSemaphoreGive( stm32_lock );
   delay(2000);
   ESP.restart();
 }
 
 void stm32_shutdown() {
+  xSemaphoreTake(stm32_lock, portMAX_DELAY);
+  stm32_sendSerialCommand(KXKM_STM32_Energy::SET_LOAD_SWITCH, 0);
   stm32_sendSerialCommand(KXKM_STM32_Energy::SHUTDOWN);
+  xSemaphoreGive( stm32_lock );
 }
 
 
