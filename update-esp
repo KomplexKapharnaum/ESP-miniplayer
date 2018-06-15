@@ -1,15 +1,21 @@
 #!/usr/bin/env python2
 import subprocess, socket
-import os 
+import os , sys
+from threading import Thread
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 clients = {}
 ip_of_sender = subprocess.check_output("hostname -I" , shell=True).decode('utf-8').rstrip()
-esp_respond_sender_port = '3232'
-sender_to_esp_port = '3232'
+esp_respond_sender_port = 3235
 firmware = dir_path+'/Arduino/ESP32-miniplayer/ESP32-miniplayer.ino.esp32.bin'
 
 print(ip_of_sender)
+
+version_filter = False
+if  len(sys.argv) > 1:
+	version_filter = str(sys.argv[1])
+
+upgradeCount = 0
 
 
 from zero import *
@@ -30,7 +36,12 @@ class ServiceListener(object):
         	clients[name] = {}
         	clients[name]['ip'] = str(socket.inet_ntoa(info.getAddress())).rstrip()
         	clients[name]['port'] =  str(info.getPort())
-        	print "Device ", len(clients),": Arduino", name, "detected"
+        	clients[name]['version'] = name.split(' v')[1][:4]
+        	clients[name]['upgrade'] = (not version_filter or clients[name]['version'] != version_filter)
+        	if clients[name]['upgrade']:
+        		global upgradeCount
+        		upgradeCount += 1
+        	print "Device ", len(clients),": Arduino", name, "detected: ", "UPGRADABLE" if  clients[name]['upgrade'] else "OK"
             
             #print( "  Weight is %d, Priority is %d" % (info.getWeight(),
             #                                          info.getPriority()))
@@ -41,6 +52,21 @@ class ServiceListener(object):
             #    for key, value in prop.items():
             #        print( "    %s: %s" % (key, value))
             
+            
+class Upgrader(Thread):       
+	def __init__(self, port, info):
+		Thread.__init__(self)
+		self.port = port
+		self.info = info
+
+	def run(self):
+		print "Uploading to ", self.info['ip']
+		cmd = 'python ~/Arduino/hardware/espressif/esp32/tools/espota.py -i '+self.info['ip']+' -I '+ip_of_sender+' -p '+self.info['port']+' -P '+str(self.port)+' -f '+firmware
+		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		for line in p.stdout.readlines():
+			print line,
+		retval = p.wait()
+		print retval
  
 if __name__ == '__main__':
     r = Zeroconf()
@@ -49,17 +75,24 @@ if __name__ == '__main__':
     browser = ServiceBrowser(r, type, listener)
     a = raw_input("Press enter to upload...\n\n")
     r.close()
-    time.sleep(2)
-    y = raw_input("Upload to "+str(len(clients))+" Devices ?... [y/n]\n\n")
+    #time.sleep(2)
+    y = raw_input("Upload to "+str(upgradeCount)+" Devices ?... [y/n]\n\n")
     if y is not 'y':
     	process.exit()
- 
+    	
+    threadlist = []
     for esp, info in clients.items():
-		cmd = 'python ~/Arduino/hardware/espressif/esp32/tools/espota.py -i '+info['ip']+' -I '+ip_of_sender+' -p '+info['port']+' -P '+esp_respond_sender_port+' -f '+firmware
-		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		for line in p.stdout.readlines():
-		    print line,
-		retval = p.wait()
-		print(cmd)
-		print("\n")
+    	if info['upgrade']:
+			print "Preparing upload to ", info['ip']
+			threadlist.append(Upgrader(esp_respond_sender_port, info))
+			esp_respond_sender_port += 1
+    	
+    for t in threadlist:
+    	t.start()
+    
+    for t in threadlist:
+    	t.join()
+    	
+    	
+    	
 

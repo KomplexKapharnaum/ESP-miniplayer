@@ -12,7 +12,7 @@ void stm32_start() {
   
   Serial.begin(115200, SERIAL_8N1);
   Serial.setTimeout(10);
-
+  
   stm32_lock = xSemaphoreCreateMutex();
   stm32_running = true;
 
@@ -74,11 +74,13 @@ byte stm32_batteryLevel() {
 void stm32_reset() {
   xSemaphoreTake(stm32_lock, portMAX_DELAY);
   stm32_sendSerialCommand(KXKM_STM32_Energy::SET_LOAD_SWITCH, 0);
-  delay(500);
   stm32_sendSerialCommand(KXKM_STM32_Energy::REQUEST_RESET);
-  xSemaphoreGive( stm32_lock );
-  delay(2000);
+  delay(1000);
+  Serial.println("STM did not reset, going with soft reset");
+  WiFi.disconnect();
+  delay(500);
   ESP.restart();
+  xSemaphoreGive( stm32_lock );
 }
 
 void stm32_shutdown() {
@@ -133,6 +135,11 @@ void stm32_flushSerialIn()
 {
   while (Serial.available())
     Serial.read();
+}
+
+void stm32_wait() {
+  xSemaphoreTake(stm32_lock, portMAX_DELAY);
+  xSemaphoreGive( stm32_lock );
 }
 
 

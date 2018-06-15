@@ -18,6 +18,8 @@
 #define MP_VERSION  0.88  // Switch ON power line on start / Reset//Stop do switch OFF
 #define MP_VERSION  0.89  // Monitor AP mac + Wifi strength
 #define MP_VERSION  0.90  // Channel change fix + set wifi to kxkm24
+#define MP_VERSION  0.91  // Trying to Fix reset issue
+#define MP_VERSION  0.92  // Trying to Fix reset issue: disconnect before restart
 
 /*
    INCLUDES
@@ -37,9 +39,9 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  //settings_set("id", 30);
+  //settings_set("id", 18);
   //settings_set("channel", 15);
-  //settings_set("model", 1);   // 0: proto -- 1: big -- 2: small
+  settings_set("model", 1);   // 0: proto -- 1: big -- 2: small
 
   // STM32
   if ( settings_get("model") > 0 ) stm32_start();
@@ -51,7 +53,9 @@ void setup() {
   wifi_connect("kxkm24");
   wifi_ota( "esp-" + osc_id() + " " + osc_ch() + " v" + String(MP_VERSION, 2) );
   wifi_onConnect(doOnConnect);
-  //wifi_wait(5000, true);
+  /*if (!wifi_wait(5000)) {
+    stm32_reset();
+  }*/
 
   // SD
   if (!sd_setup()) {
@@ -68,7 +72,6 @@ void setup() {
     stm32_reset();
   }
   audio_loop(false);
-  
 }
 
 /*

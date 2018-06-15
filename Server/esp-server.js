@@ -15,9 +15,9 @@ const pad = require('./utils.js').pad
 
 const OSC = require('osc')
 
-var TIME_OFFLINE = 2500;  // Offline Time
-var TIME_GONE = 4000;     // Gone Time
-var TIME_SYNC = 2000      // Sync alert Time
+var TIME_OFFLINE = 3500;  // Offline Time
+var TIME_GONE = 5000;     // Gone Time
+var TIME_SYNC = 3000      // Sync alert Time
 
 function log(msg) {
   console.log(msg);

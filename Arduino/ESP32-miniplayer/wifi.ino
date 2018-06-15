@@ -90,7 +90,7 @@ void _wifi_connected() {
  * Internal callback
  */
 void _wifi_disconnected() {
-
+  stm32_wait();
 }
 
 /*
@@ -127,10 +127,10 @@ void wifi_otaCheck() {
  * Wait for wifi to be connected, or until timeout
  * Can trigger Restart on timeout
  */
-void wifi_wait(int timeout, bool restart) {
+bool wifi_wait(int timeout, bool restart) {
   byte retries = 0;
   while(retries < timeout/100) {
-    if (wifi_available) return;
+    if (wifi_available) return true;
     retries += 1;
     delay(100);
   }
@@ -139,6 +139,11 @@ void wifi_wait(int timeout, bool restart) {
     ESP.restart();
   }
   else LOG("WIFI: timeout is over");
+  return false;
+}
+
+bool wifi_wait(int timeout) {
+  wifi_wait(timeout, false);
 }
 
 

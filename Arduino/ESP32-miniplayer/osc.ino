@@ -13,6 +13,8 @@ String lastPacket = "";
 bool osc_newChannel = false;
 int osc_channel = 0;
 
+
+
 void osc_start() {
 
   osc_channel = settings_get("channel");
@@ -115,7 +117,7 @@ bool osc_parsePacket(String command, IPAddress remote ) {
   // Check identity
   data = osc_next(currentData);
   if (data != osc_id() && data != "all" && data != osc_ch()) {
-    LOG("Not for me ... ");
+    //LOG("Not for me ... ");
     return false;
   }
 
