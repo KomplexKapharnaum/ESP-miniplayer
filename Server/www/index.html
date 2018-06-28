@@ -260,6 +260,7 @@
                     .appendTo(cli_blk)
 
             $('<div class="subheader player-battery">').appendTo(cli_blk)
+            $('<div class="subheader player-ip">').appendTo(cli_blk)
             $('<div class="subheader player-rssi">').appendTo(cli_blk)
             $('<div class="subheader player-bssid">').appendTo(cli_blk)
             $('<div class="subheader player-media">').appendTo(cli_blk)
@@ -327,6 +328,7 @@
             this.mainblock.find(".player-syncerror").html(cli['info']['syncerror'])
 
             // Wifi
+            if (cli['info']['ip'] !== undefined) this.mainblock.find(".player-ip").html("ip: "+cli['info']['ip'])
             if (cli['info']['rssi'] !== undefined) this.mainblock.find(".player-rssi").html("wifi: "+cli['info']['rssi']+" dbm")
             if (cli['info']['bssid'] !== undefined) this.mainblock.find(".player-bssid").html("bssid: "+cli['info']['bssid'])
 

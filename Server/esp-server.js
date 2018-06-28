@@ -383,6 +383,7 @@ class Server extends Worker {
       var info = {
         id: message['args'][0],
         version: message['args'][1],
+        ip: remote.address,
         port: message['args'][2],
         channel: message['args'][3],
         link: message['args'][4],
