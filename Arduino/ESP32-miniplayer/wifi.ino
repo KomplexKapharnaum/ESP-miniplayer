@@ -9,13 +9,16 @@ String wifi_nameDevice = "esp32";
 void (*wifi_conClbck)();
 
 
+void wifi_set_hostname(String nameDevice) {
+  wifi_nameDevice = nameDevice;
+}
+
 /*
  * Setup OTA
  */
-void wifi_ota(String nameDevice) {
+void wifi_ota() {
   wifi_otaEnable = true;
-  wifi_nameDevice = nameDevice;
-  ArduinoOTA.setHostname(nameDevice.c_str());
+  ArduinoOTA.setHostname(wifi_nameDevice.c_str());
   _wifi_otabegin();
 }
 void _wifi_otabegin() {
@@ -56,11 +59,13 @@ void wifi_connect(const char* ssid, const char* password) {
   WiFi.mode(WIFI_STA);
   WiFi.onEvent(_wifi_event);
   WiFi.begin(ssid, password);
+  WiFi.setHostname(wifi_nameDevice.c_str());
 }
 void wifi_connect(const char* ssid) {
   WiFi.mode(WIFI_STA);
   WiFi.onEvent(_wifi_event);
   WiFi.begin(ssid);
+  WiFi.setHostname(wifi_nameDevice.c_str());
 }
 
 /*

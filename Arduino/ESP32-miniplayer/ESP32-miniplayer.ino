@@ -20,6 +20,7 @@
 #define MP_VERSION  0.90  // Channel change fix + set wifi to kxkm24
 #define MP_VERSION  0.91  // Trying to Fix reset issue
 #define MP_VERSION  0.92  // Trying to Fix reset issue: disconnect before restart
+#define MP_VERSION  0.93  // Fix hostname
 
 /*
    INCLUDES
@@ -50,8 +51,9 @@ void setup() {
   // Wifi
   // wifi_static("192.168.0.237");
   //wifi_connect("interweb", "superspeed37");
+  wifi_set_hostname("esp-" + osc_id() + " " + osc_ch() + " v" + String(MP_VERSION, 2) );
   wifi_connect("kxkm24");
-  wifi_ota( "esp-" + osc_id() + " " + osc_ch() + " v" + String(MP_VERSION, 2) );
+  wifi_ota();
   wifi_onConnect(doOnConnect);
   /*if (!wifi_wait(5000)) {
     stm32_reset();
