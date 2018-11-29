@@ -125,6 +125,16 @@ button:focus {outline:0;}
   float: right
 }
 
+.lighter {
+  float: right;
+  margin-right: 30px;
+}
+
+.lighter .slider {
+  margin-left: 10px;
+  width: 200px;
+}
+
 .player.stop .subheader {
   display: none;
 }

@@ -36,6 +36,9 @@ class MidiInterface {
       // noteOFF enable
       if (msg.controller == 2) that.ESPserver.channel(msg.channel).noteOffStop( (msg.value < 63) )
 
+      // noteOFF enable
+      if (msg.controller == 23) that.ESPserver.channel(msg.channel).lightall( msg.value*2 )
+
       // volume
       else if (msg.controller == 7) that.ESPserver.channel(msg.channel).volume( msg.value )
 

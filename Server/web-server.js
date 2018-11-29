@@ -71,6 +71,11 @@ class Server extends EventEmitter {
           else that.espserver.stopsync()
       })
 
+      // LIGHT
+      client.on('light', function(value) {
+          that.espserver.lightall(value)
+      })
+
       // PLAYER TEST
       client.on('player.test', function(id) {
           that.espserver.getNodeById(id).playtest()

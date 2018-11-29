@@ -110,7 +110,7 @@ class Client extends EventEmitter {
   }
 
   playtest() {
-    this.send('/play/'+pad(0, 3)+'/'+pad(3, 3)+'/100')
+    this.send('/play/'+pad(0, 3)+'/'+pad(3, 3)+'/60')
   }
 
   stopPlayback() {
@@ -172,6 +172,10 @@ class Channel extends EventEmitter {
     this.lastSend = message
     this.emit('send', message)
     console.log(path)
+  }
+
+  lightall(val) {
+    this.send('/led/all/all/'+val+'/'+val+'/'+val);
   }
 
   play(media, velocity) {
@@ -496,6 +500,10 @@ class Server extends Worker {
 
   stopsync() {
     this.doSync = false
+  }
+
+  lightall(value) {
+    this.master().lightall(value)
   }
 
   master() {

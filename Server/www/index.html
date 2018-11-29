@@ -8,6 +8,11 @@
           <input type=checkbox id="sync">Sync!</input>
         </div>
 
+        <div class="block lighter">
+          Light
+          <input type=range id="light" class="slider" value="0" min=0 max=255> 
+        </div>
+
         <div class="blockfull server-info">
           <div class="header">KXKM // ESP-miniplayers</div>
           <div class="subheader">
@@ -76,6 +81,10 @@
 
         $("#sync").change(function() {
             socket.emit('sync', this.checked);
+        });
+
+        $("#light").on('input', function() {
+            socket.emit('light', $(this).val());
         });
 
 

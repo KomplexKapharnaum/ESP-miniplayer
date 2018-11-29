@@ -16,7 +16,7 @@ AudioOutputI2S *out;
 SemaphoreHandle_t audio_lock = xSemaphoreCreateMutex();
 
 String audio_currentFile = "";
-bool audio_loopMedia = false;
+bool audio_doLoop = false;
 bool audio_sdOK = false;
 bool audio_engineOK = false;
 String audio_errorPlayer = "";
@@ -24,7 +24,7 @@ String audio_errorPlayer = "";
 int gainMin = 120;
 int gainMax = 60;
 
-bool audio_setup()
+bool audio_init()
 {   
   if (SD.exists("/")) audio_sdOK = true;
   else audio_sdOK = sd_setup();
@@ -155,7 +155,7 @@ void audio_volume(int vol)
 
 void audio_loop(bool doLoop)
 {
-  audio_loopMedia = doLoop;
+  audio_doLoop = doLoop;
 }
 
 bool audio_run()
@@ -166,7 +166,7 @@ bool audio_run()
       xSemaphoreGive(audio_lock);
       return true;
     }
-    else if (audio_loopMedia && audio_currentFile != "") {
+    else if (audio_doLoop && audio_currentFile != "") {
       //audio_play(currentFile);
       file->seek(0, SEEK_SET);
       LOG("loop: " + audio_currentFile);
@@ -195,10 +195,9 @@ String audio_media() {
   return c;
 }
 
-String audio_error() {
+String audio_Error() {
   xSemaphoreTake(audio_lock, portMAX_DELAY);
   String c = audio_errorPlayer;
   xSemaphoreGive(audio_lock);
   return c;
 }
-

@@ -1,6 +1,6 @@
 
-#define CHECK_PERIOD 20000      // task loop in ms
-#define CHECKTICK_BATTERY 1     // x CHECK_PERIOD = duration in ms
+#define STM32_CHECK_PERIOD 20000      // task loop in ms
+#define CHECKTICK_BATTERY 1           // x CHECK_PERIOD = duration in ms
 
 SemaphoreHandle_t stm32_lock;
 
@@ -17,13 +17,13 @@ void stm32_start() {
   stm32_running = true;
 
   xTaskCreatePinnedToCore(
-                    stm32_task,   /* Function to implement the task */
-                    "stm32_task", /* Name of the task */
-                    1000,       /* Stack size in words */
-                    NULL,       /* Task input parameter */
-                    0,          /* Priority of the task */
-                    NULL,       /* Task handle. */
-                    0);         /* Core where the task should run */
+                    stm32_task,   
+                    "stm32_task",
+                    1000,      
+                    NULL,       
+                    0,      
+                    NULL,     
+                    0);        
 }
 
 void stm32_task( void * parameter ) {
@@ -59,7 +59,7 @@ void stm32_task( void * parameter ) {
     }
 
     xSemaphoreGive( stm32_lock );
-    delay(CHECK_PERIOD);
+    delay(STM32_CHECK_PERIOD);
   }
   vTaskDelete(NULL);
 }
@@ -91,7 +91,7 @@ void stm32_shutdown() {
 }
 
 
-/* Send commands / receive answers */
+// Send commands / receive answers 
 
 void stm32_sendSerialCommand(KXKM_STM32_Energy::CommandType cmd, int arg)
 {
