@@ -27,7 +27,7 @@ class OscInterface {
       console.log("osc bridge received:", message['address'], message['args'], "from", remote.address, remote.port)
 
       if (message['address'] == "/gegenrpm") {
-        if (that.MIDIiface) that.MIDIiface.MidiOUT.send('cc', { controller: 22, value: Math.max(message['args'][0]*2), channel: 15 })
+        if (that.MIDIiface) that.MIDIiface.MidiOUT.send('cc', { controller: 23, value: Math.max(message['args'][0]*2), channel: 15 })
         that.ESPserver.rpm(message['args'][0])
       }
 
