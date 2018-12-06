@@ -15,7 +15,7 @@ int osc_channel = 0;
 
 
 
-void osc_start() {
+void oscC_start() {
 
   osc_channel = settings_get("channel");
   
@@ -33,16 +33,16 @@ void osc_start() {
   osc_running = true;
 
   xTaskCreatePinnedToCore(
-    osc_task,   /* Function to implement the task */
-    "osc_task", /* Name of the task */
-    10000,       /* Stack size in words */
-    NULL,       /* Task input parameter */
-    1,          /* Priority of the task */
-    NULL,       /* Task handle. */
-    0);         /* Core where the task should run */
+    oscC_task,   
+    "oscC_task", 
+    10000,       
+    NULL,       
+    1,          
+    NULL,       
+    0);        
 }
 
-void osc_task( void * parameter ) {
+void oscC_task( void * parameter ) {
 
   unsigned long last_beacon = 0;
 
@@ -68,7 +68,7 @@ void osc_task( void * parameter ) {
         LOGF("UDP: packet received: %s\n", incomingPacket);
 
         // Parse Packet
-        bool valid = osc_parsePacket(String(incomingPacket), udp_in.remoteIP());
+        bool valid = oscC_parsePacket(String(incomingPacket), udp_in.remoteIP());
 
         // Set Server IP
         if (valid && !linkStatus) {
@@ -80,7 +80,7 @@ void osc_task( void * parameter ) {
 
     // Beacon out
     if ((millis() - last_beacon) > 800) {
-      osc_beacon(udp_out);
+      oscC_beacon(udp_out);
       last_beacon = millis();
     }
 
@@ -92,19 +92,19 @@ void osc_task( void * parameter ) {
   vTaskDelete(NULL);
 }
 
-bool osc_parsePacket(String command, IPAddress remote ) {
+bool oscC_parsePacket(String command, IPAddress remote ) {
   String currentData = command;
-  String data = osc_next(currentData);
+  String data = oscC_next(currentData);
 
   // Check /esp
-  data = osc_next(currentData);
+  data = oscC_next(currentData);
   if ( data != "esp") {
     LOGF("Invalid packet: %s\n", command);
     return false;
   }
 
   // Check MSG-COUNTER or /manual
-  data = osc_next(currentData);
+  data = oscC_next(currentData);
   if (data != "manual") {
     if ( data == lastPacket) {
       //LOG("Already played");
@@ -114,55 +114,55 @@ bool osc_parsePacket(String command, IPAddress remote ) {
   }
 
   // Check identity
-  data = osc_next(currentData);
-  if (data != osc_id() && data != "all" && data != osc_ch()) {
+  data = oscC_next(currentData);
+  if (data != oscC_id() && data != "all" && data != oscC_ch()) {
     //LOG("Not for me ... ");
     return false;
   }
 
   // Command
-  data = osc_next(currentData);
+  data = oscC_next(currentData);
   if (data == "hello") ;
   else if (data == "sync") {
     sync_setHost(remote);
-    sync_do(osc_next(currentData).toInt());
+    sync_do(oscC_next(currentData).toInt());
   }
   else if (data == "stop") audio_stop();
   else if (data == "play") {
-    String mediaPath = sd_getPathNote(osc_next(currentData).toInt(), osc_next(currentData).toInt());
-    audio_volume(osc_next(currentData).toInt());
+    String mediaPath = sd_getPathNote(oscC_next(currentData).toInt(), oscC_next(currentData).toInt());
+    audio_volume(oscC_next(currentData).toInt());
     audio_play(mediaPath);
   }
   else if (data == "playtest") {
     String mediaPath = "test.mp3";
     audio_play(mediaPath);
   }
-  else if (data == "volume") audio_volume(osc_next(currentData).toInt());
+  else if (data == "volume") audio_volume(oscC_next(currentData).toInt());
   else if (data == "setchannel") {
-    if (!osc_newChan()) {
-      osc_channel = osc_next(currentData).toInt();
-      osc_newChan(true);
+    if (!oscC_newChan()) {
+      osc_channel = oscC_next(currentData).toInt();
+      oscC_newChan(true);
     }
   }
-  else if (data == "setid") settings_set("id", osc_next(currentData).toInt());
-  else if (data == "loop") audio_loop((bool) osc_next(currentData).toInt());
+  else if (data == "setid") settings_set("id", oscC_next(currentData).toInt());
+  else if (data == "loop") audio_loop((bool) oscC_next(currentData).toInt());
   else if (data == "reset") stm32_reset();
   else if (data == "shutdown") stm32_shutdown();
 
   else if (data == "led") {
-    String strip = osc_next(currentData);
+    String strip = oscC_next(currentData);
     int s;
     if (strip == "all" ) s = -1;
     else s = strip.toInt();
 
-    String pixel = osc_next(currentData);
+    String pixel = oscC_next(currentData);
     int p;
     if (pixel == "all" ) p = -1;
     else p = pixel.toInt();
 
-    int red = osc_next(currentData).toInt();
-    int green = osc_next(currentData).toInt();
-    int blue = osc_next(currentData).toInt();
+    int red = oscC_next(currentData).toInt();
+    int green = oscC_next(currentData).toInt();
+    int blue = oscC_next(currentData).toInt();
 
     leds_setPixel(s, p, red, green, blue);
   }
@@ -176,7 +176,7 @@ bool osc_parsePacket(String command, IPAddress remote ) {
 //
 // Send info beacon as heartbeat (status and autodiscovery)
 //
-void osc_beacon(WiFiUDP udp_out)
+void oscC_beacon(WiFiUDP udp_out)
 {
   char mac[18] = { 0 }; 
   sprintf(mac, "%02X:%02X:%02X", WiFi.BSSID()[3], WiFi.BSSID()[4], WiFi.BSSID()[5]);
@@ -195,7 +195,7 @@ void osc_beacon(WiFiUDP udp_out)
   msg.add(sync_size());
   if (audio_media() != "") msg.add(audio_media().c_str());
   else msg.add("stop");
-  msg.add(audio_error().c_str());
+  msg.add(audio_Error().c_str());
   msg.add(stm32_batteryLevel());
   msg.add(sync_getStatus().c_str());
   msg.add(WiFi.RSSI());
@@ -210,7 +210,7 @@ void osc_beacon(WiFiUDP udp_out)
 //
 // Unpack /esp/manual/who/how/what
 //
-String osc_next(String& currentData) {
+String oscC_next(String& currentData) {
   String dataCopy(currentData.c_str());
   for (int i = 0; i < dataCopy.length(); i++) {
     if (dataCopy.substring(i, i + 1) == "/") {
@@ -224,11 +224,11 @@ String osc_next(String& currentData) {
 }
 
 
-String osc_id() {
+String oscC_id() {
   return String(settings_get("id"));
 }
 
-String osc_ch() {
+String oscC_ch() {
   byte ch = settings_get("channel");
   String ans = "c";
   if (ch < 10) ans += "0";
@@ -236,18 +236,18 @@ String osc_ch() {
   return ans;
 }
 
-bool osc_isLinked() {
+bool oscC_isLinked() {
   return linkStatus;
 }
 
-bool osc_newChan() {
+bool oscC_newChan() {
   return osc_newChannel;
 }
 
-void osc_newChan(bool doit) {
+void oscC_newChan(bool doit) {
   osc_newChannel = doit;
 }
 
-int osc_chan() {
+int oscC_chan() {
   return osc_channel;
 }

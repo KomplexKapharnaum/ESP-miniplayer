@@ -50,10 +50,11 @@ void leds_task( void * parameter ) {
 
   leds_running = leds_setup();
 
+  leds_test();
+
   while(leds_running) {
     leds_show();
     delay(show_interval);
-    LOG("leds updated");
   }
   
   vTaskDelete(NULL);
@@ -93,6 +94,9 @@ void leds_setPixel(int strip, int pixel, int red, int green, int blue) {
     return;
   }
   else {
+    red = red * red / 255;
+    green = green * green / 255;
+    blue = blue * blue / 255;
     if (red > 255) red = 255;     if (red < 0) red = 0;
     if (green > 255) green = 255; if (green < 0) green = 0;
     if (blue > 255) blue = 255;   if (blue < 0) blue = 0;
@@ -109,7 +113,7 @@ void leds_setStrip(int strip, int red, int green, int blue) {
 void leds_test() {
   leds_blackout();
   leds_show();
-  delay(200);
+  delay(100);
 
   for (int s = 0; s < NUM_STRIPS; s++)
       leds_setStrip(s, TEST_LEVEL, 0, 0);
@@ -128,10 +132,4 @@ void leds_test() {
   
   leds_blackout();
   leds_show();
-}
-
-
-void leds_dimwhite(byte dim) {
-  for (int s = 0; s < NUM_STRIPS; s++)
-      leds_setStrip(s, dim, dim, dim);
 }

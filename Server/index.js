@@ -22,10 +22,13 @@ if (!isLinux) {
 // Console display
 //setInterval(()=>Utils.consoledisp(ESPserver), 500)
 
-
 // Start web interface
 const WEBlib = require('./web-server.js')
 var WEBserver = new WEBlib.Server(ESPserver)
+
+// Start OSC interface
+const OSCbridge = require('./osc-bridge.js')
+var OSCiface = new OSCbridge.OscInterface(ESPserver, MIDIiface)
 
 // Electron interface
 const {app, BrowserWindow} = require('electron')

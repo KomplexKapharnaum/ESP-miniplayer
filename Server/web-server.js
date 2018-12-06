@@ -72,8 +72,8 @@ class Server extends EventEmitter {
       })
 
       // LIGHT
-      client.on('light', function(value) {
-          that.espserver.lightall(value)
+      client.on('ledall', function(value) {
+          that.espserver.ledall(value[0], value[1], value[2])
       })
 
       // PLAYER TEST
@@ -124,6 +124,12 @@ class Server extends EventEmitter {
     this.espserver.on('syncstamp', function(stamp, count) {
       //console.log(this.event, value1, value2);
       that.io.emit('syncstamp', {stamp: stamp, filecount: count})
+    })
+
+    // BIND SERVER EVENTS
+    this.espserver.on('rpm', function(rpm) {
+      //console.log(this.event, value1, value2);
+      that.io.emit('rpm', {rpm: rpm})
     })
   }
 }

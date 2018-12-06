@@ -21,14 +21,17 @@
 #define MP_VERSION  0.91  // Trying to Fix reset issue
 #define MP_VERSION  0.92  // Trying to Fix reset issue: disconnect before restart
 #define MP_VERSION  0.93  // Fix hostname
+#define MP_VERSION  0.94  // Fix weird compile stuff
+#define MP_VERSION  0.95  // Add led support
 
 /*
    INCLUDES
 */
-#include "debug.h"
+#include "logs.h"
 #include <WiFi.h>
 #include <SD.h>
 #include "KXKM_STM32_energy_API.h"
+
 
 /*
    SETUP
@@ -40,24 +43,24 @@ void setup() {
   settings_load( keys );
 
   // Settings SET
-  settings_set("id", 23);
-  settings_set("channel", 15);
-  settings_set("model", 1);   // 0: proto -- 1: big -- 2: small
+  //settings_set("id", 23);
+  //settings_set("channel", 15);
+  //settings_set("model", 1);   // 0: proto -- 1: big -- 2: small
 
   // STM32
   if ( settings_get("model") > 0 ) stm32_start();
   else LOGSETUP();
 
   // Wifi
-  // wifi_static("192.168.0.237");
-  //wifi_connect("interweb", "superspeed37");
-  wifi_set_hostname("esp-" + osc_id() + " " + osc_ch() + " v" + String(MP_VERSION, 2) );
+      // wifi_static("192.168.0.237");
+      //wifi_connect("interweb", "superspeed37");
+  wifi_set_hostname("esp-" + oscC_id() + " " + oscC_ch() + " v" + String(MP_VERSION, 2) );
   wifi_connect("kxkm24");
   wifi_otaz();
   wifi_onConnect(doOnConnect);
-  /*if (!wifi_wait(5000)) {
-    stm32_reset();
-  }*/
+      /*if (!wifi_wait(5000)) {
+        stm32_reset();
+      }*/
 
   // SD
   if (!sd_setup()) {
@@ -69,38 +72,42 @@ void setup() {
   sd_scanNotes();
 
   // Audio
-  if (!audio_setup()) {
+  if (!audio_init()) {
     LOG("Audio engine failed to start..");
     stm32_reset();
   }
   audio_loop(false);
 
-  String mediaPath = sd_getPathNote(0, 3);
+  // AUDIO TEST
+  /*String mediaPath = sd_getPathNote(0, 3);
   audio_volume(10);
   audio_play(mediaPath);
+  */
 
   // LEDS
   leds_start();
 }
 
+
 /*
    LOOP
 */
 void loop() {
+
   audio_run();
-  //leds_run();
 
   // write in memory: can't be done in thread ?
-  if (osc_newChan()) {
-    settings_set("channel", osc_chan());
-    osc_newChan(false);
+  if (oscC_newChan()) {
+    settings_set("channel", oscC_chan());
+    oscC_newChan(false);
   }
 }
+
 
 
 /*
    on Connect
 */
 void doOnConnect() {
-  osc_start();
+  oscC_start();
 }

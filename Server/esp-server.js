@@ -152,6 +152,7 @@ class Channel extends EventEmitter {
     this.volumeCh = 127
     if (this.num == 16) this.volumeCh = 64
     this.velocity = 100
+    this.leds = [0,0,0]
     this.lastSend = ""
     this.lastHash = ""
 
@@ -174,8 +175,28 @@ class Channel extends EventEmitter {
     console.log(path)
   }
 
-  lightall(val) {
-    this.send('/led/all/all/'+val+'/'+val+'/'+val);
+  ledall(red, green, blue) {
+    this.leds = [red, green, blue]
+    this.sendledall()
+  }
+  ledallwhite(val) {
+    this.leds = [val, val, Math.round(val*80/100)]
+    this.sendledall()
+  }
+  ledallred(val) {
+    this.leds[0] = val
+    this.sendledall()
+  }
+  ledallgreen(val) {
+    this.leds[1] = val
+    this.sendledall()
+  }
+  ledallblue(val) {
+    this.leds[2] = val
+    this.sendledall()
+  }
+  sendledall() {
+    this.send('/led/all/all/'+this.leds[0]+'/'+this.leds[1]+'/'+this.leds[2]);
   }
 
   play(media, velocity) {
@@ -309,6 +330,7 @@ class Server extends Worker {
     const { spawnSync} = require('child_process');
     spawnSync('fuser', ['-k', config.espserver.port+'/udp']);
     spawnSync('fuser', ['-k', config.webremote.port+'/tcp']);
+    spawnSync('fuser', ['-k', config.oscremote.port+'/udp']);
 
     this.channels = []
     for (var i=1; i<=16; i++) {
@@ -502,8 +524,24 @@ class Server extends Worker {
     this.doSync = false
   }
 
-  lightall(value) {
-    this.master().lightall(value)
+  ledall(red, green, blue) {
+    this.master().ledall(red, green, blue)
+  }
+  ledallwhite(white) {
+    this.master().ledallwhite(white)
+  }
+  ledallred(red) {
+    this.master().ledallred(red)
+  }
+  ledallgreen(green) {
+    this.master().ledallgreen(green)
+  }
+  ledallblue(blue) {
+    this.master().ledallblue(blue)
+  }
+  rpm(rpm) {
+    console.log("server rpm ",rpm)
+    this.emit('rpm', rpm);
   }
 
   master() {
