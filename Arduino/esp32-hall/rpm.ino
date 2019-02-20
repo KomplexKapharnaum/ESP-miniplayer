@@ -10,8 +10,9 @@ int send_port = 3753;
 
 int periodBuffer[RPM_BUFFER_SIZE];
 int bufferIndex = 0;
-int rpmcount;
-int last_rpm;
+int rpmcount = 0;
+int last_rpm = 0;
+unsigned long last_time = 0;
 
 SemaphoreHandle_t rpm_lock;
 
@@ -57,8 +58,9 @@ void rpm_task( void * parameter ) {
     }
     average = average * 60 * 1000 / (RPM_BUFFER_SIZE * RPM_BUFFER_SAMPLINGTIME * RPM_MAGNETCOUNT);  // average RPM
 
-    if (average != last_rpm) {
+    if ((average != last_rpm) || ((now-last_time) > 1000)) {
       last_rpm = average;
+      last_time = now;
 
       // SEND OSC (2 times)
       for (int k=0; k<2; k++) {

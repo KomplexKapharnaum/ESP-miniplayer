@@ -4,17 +4,18 @@
 #define SNAPSIZE 10
 #define DEBOUNCESIZE 4
 
-#define MP_VERSION  0.1
+#define MP_VERSION  0.21
 
 bool trig = false;
 int analog_value;
+unsigned long last_measure = 0;
 
 void setup() {
   
   LOGSETUP();
   LOG("Starting");
   
-  wifi_set_hostname("esp-reed v" + String(MP_VERSION, 2) );
+  wifi_set_hostname("esp-hall v" + String(MP_VERSION, 2) );
   //wifi_connect("kxkm-wifi", "KOMPLEXKAPHARNAUM");
   wifi_connect("kxkm24");
   wifi_ota();
@@ -34,35 +35,8 @@ void loop() {
   }
   else trig = false;
 
-  
-  delay(10);
-
-    
-
-  /*delay(REFRESH);
-  detachInterrupt(4);
-
-  // get lowest value (offset)
-  byte nextIndex = snapIndex+1;
-  if (nextIndex >= SNAPSIZE) nextIndex = 0;
-  unsigned long offset = snapshots[nextIndex];
-
-  // average time for a rotation
-  average = 0;
-  for (int i=0; i<SNAPSIZE; i++)
-    average += (snapshots[i]-offset);
-  average = average / SNAPSIZE;
-
-  if (average == 0) rpm = 0;
-  else rpm = 60*1000/average;
-
-  LOGINL("RPM=");
-  LOG(rpm);
-
-  //Restart the interrupt processing
-  attachInterrupt(4, rpm_fun, FALLING);
-
-  LOG(rpm);*/
+  ArduinoOTA.handle();
+  delay(1);
 
 }
 
