@@ -16,6 +16,9 @@ KESP_STM32* stm32;
 #include "KESP_LEDS.h"
 KESP_LEDS* leds;
 
+#include "KESP_AUDIO.h"
+KESP_AUDIO* audio;
+
 
 /*
    SETUP
@@ -62,6 +65,7 @@ void setup() {
     stm32->reset();
   }
   audio_loop(false);
+  audio = new KESP_AUDIO();
 
   // AUDIO TEST
   /*String mediaPath = sd_getPathNote(0, 3);
@@ -70,7 +74,6 @@ void setup() {
   */
 
   // LEDS
-  leds_start();
   leds = new KESP_LEDS();
 
 }

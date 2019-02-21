@@ -164,7 +164,8 @@ bool oscC_parsePacket(String command, IPAddress remote ) {
     int green = oscC_next(currentData).toInt();
     int blue = oscC_next(currentData).toInt();
 
-    leds_setPixel(s, p, red, green, blue);
+    leds->setPixel(s, p, red, green, blue);
+    leds->show();
   }
 
   else LOGF ("Command unknown: %s\n", data.c_str());

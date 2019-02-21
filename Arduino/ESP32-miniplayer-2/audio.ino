@@ -4,7 +4,8 @@
 #include "AudioGeneratorMP3.h"
 #include "AudioOutputI2S.h"
 
-#include "PCM51xx.h"  //https://github.com/tommag/PCM51xx_Arduino
+//https://github.com/tommag/PCM51xx_Arduino
+#include "PCM51xx.h"
 #include "Wire.h"
 
 PCM51xx pcm(Wire); //Using the default I2C address 0x74
@@ -25,7 +26,7 @@ int gainMin = 120;
 int gainMax = 60;
 
 bool audio_init()
-{   
+{
   if (SD.exists("/")) audio_sdOK = true;
   else audio_sdOK = sd_setup();
 
@@ -43,7 +44,7 @@ bool audio_init()
     gainMin = 140;
     gainMax = 75;
   }
-  
+
 
   out = new AudioOutputI2S(0,AudioOutputI2S::EXTERNAL_I2S, 8, AudioOutputI2S::APLL_DISABLE);
   //out->SetBitsPerSample(16);
@@ -76,7 +77,7 @@ bool audio_init()
       pcmOK = false;
     }
   }
-  
+
   audio_volume(100);
   mp3 = new AudioGeneratorMP3();
   audio_engineOK = pcmOK;
@@ -84,14 +85,14 @@ bool audio_init()
 }
 
 bool audio_play(String filePath)
-{ 
+{
   if (!audio_engineOK) {
     xSemaphoreTake(audio_lock, portMAX_DELAY);
     audio_errorPlayer = "engine not ready";
     xSemaphoreGive(audio_lock);
     return false;
   }
-  
+
   if (audio_running()) audio_stop();
   if (filePath == "") return false;
 
@@ -100,7 +101,7 @@ bool audio_play(String filePath)
   bool isStarted = mp3->begin(file, out);
   //pcm.unmute();
   xSemaphoreGive(audio_lock);
-  
+
   if (isStarted) {
     xSemaphoreTake(audio_lock, portMAX_DELAY);
     audio_currentFile = filePath;
@@ -115,14 +116,14 @@ bool audio_play(String filePath)
     xSemaphoreGive(audio_lock);
     audio_stop();
   }
-  
+
   return isStarted;
 }
 
 void audio_stop()
 {
   if (!audio_engineOK) return;
-  
+
   if (audio_running()) {
     xSemaphoreTake(audio_lock, portMAX_DELAY);
     //pcm.mute();
@@ -136,9 +137,9 @@ void audio_stop()
 }
 
 void audio_volume(int vol)
-{ 
+{
   if (!audio_engineOK) return;
-  
+
   LOGF("GAIN: %i\n", vol);
   xSemaphoreTake(audio_lock, portMAX_DELAY);
   if (settings_get("model") > 0) {
