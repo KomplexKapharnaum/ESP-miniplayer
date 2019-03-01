@@ -10,13 +10,18 @@ void (*wifi_conClbck)();
 
 
 void wifi_set_hostname(String nameDevice) {
+  wifi_set_hostname(nameDevice, true);
+}
+
+void wifi_set_hostname(String nameDevice, bool enableOTA) {
   wifi_nameDevice = nameDevice;
+  if (enableOTA) wifi_ota();
 }
 
 /*
  * Setup OTA
  */
-void wifi_otaz() {
+void wifi_ota() {
   wifi_otaEnable = true;
   ArduinoOTA.setHostname(wifi_nameDevice.c_str());
   _wifi_otabegin();
@@ -58,14 +63,14 @@ void wifi_static(String ip) {
 void wifi_connect(const char* ssid, const char* password) {
   WiFi.mode(WIFI_STA);
   WiFi.onEvent(_wifi_event);
-  WiFi.begin(ssid, password);
   WiFi.setHostname(wifi_nameDevice.c_str());
+  WiFi.begin(ssid, password);
 }
 void wifi_connect(const char* ssid) {
   WiFi.mode(WIFI_STA);
   WiFi.onEvent(_wifi_event);
-  WiFi.begin(ssid);
   WiFi.setHostname(wifi_nameDevice.c_str());
+  WiFi.begin(ssid);
 }
 
 /*
@@ -88,14 +93,14 @@ bool wifi_isok() {
  */
 void _wifi_connected() {
   _wifi_otabegin();
-  (*wifi_conClbck)();
+  if (wifi_conClbck != NULL) (*wifi_conClbck)();
 }
 
 /*
  * Internal callback
  */
 void _wifi_disconnected() {
-  stm32->wait();
+
 }
 
 /*

@@ -32,8 +32,6 @@
 #include <SD.h>
 #include "KXKM_STM32_energy_API.h"
 
-#include "KXKM32.h"
-
 /*
    SETUP
 */

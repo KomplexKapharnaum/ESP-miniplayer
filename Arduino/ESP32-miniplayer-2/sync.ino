@@ -1,9 +1,9 @@
 #include <HTTPClient.h>
 #include "UDHttp.h"  // Manual dl from https://github.com/nhatuan84/esp-upload-download-file-http
 
-enum : int { 
+enum : int {
   SYNC_NOLINK = -1,
-  SYNC_WAIT = 0, 
+  SYNC_WAIT = 0,
   SYNC_RUN = 1,
   SYNC_DONE = 2
   };
@@ -16,13 +16,13 @@ int lastPct = 0;
 int dlSize = 0;
 File dlFile;
 
-int bank_stamp[MAX_BANK] = {0};
+int bank_stamp[MIDI_MAX_BANK] = {0};
 
 String sync_statusMsg = "";
 SemaphoreHandle_t sync_lock = xSemaphoreCreateMutex();
 
 void sync_do(int stamp) {
-  
+
   if (stamp <= lastStamp) return;   // this update is already done
   if (sync_state == SYNC_DONE) sync_state = SYNC_WAIT;   // reset state
   if (sync_state != SYNC_WAIT) return;      // not ready to sync
@@ -40,18 +40,18 @@ void sync_do(int stamp) {
 }
 
 void sync_task(void * parameter) {
-  
+
   LOG("\nSyncing...");
   sync_setStatus("Syncing..");
 
-  for (byte bank = 0; bank < MAX_BANK; bank++) {
+  for (byte bank = 0; bank < MIDI_MAX_BANK; bank++) {
     LOG("Syncing BANK " + String(bank));
     sync_bankCheck(bank);
   }
 
   sync_state = SYNC_DONE;
   LOG("Sync done: " + String(sync_count) + " files");
-  sd_scanNotes();  // re-scan SD card
+  audio->midiNoteScan();;  // re-scan SD card
 
   sync_setStatus("");
   vTaskDelete( NULL );
@@ -62,11 +62,11 @@ void sync_bankCheck(byte bank) {
   sync_setStatus("Get bank"+String(bank));
   HTTPClient http;
   http.setTimeout(5000);
-  
+
   xSemaphoreTake(sync_lock, portMAX_DELAY);
   http.begin(sync_host, 3742, "/listbank/"+String(bank));
   xSemaphoreGive(sync_lock);
-  
+
   if (http.GET() != 200) {
     LOG("Sync: can't get files list");
     sync_setStatus("Can't get list Bank "+String(bank));
@@ -100,13 +100,13 @@ void sync_fileCheck(String payload) {
 
   //LOG(payload);
   //LOG("file "+file+" size "+String(fsize));
-  
-  if (fsize == 0) return; // skip empty file on remote 
-  
+
+  if (fsize == 0) return; // skip empty file on remote
+
   sync_setStatus("Checking file "+file);
 
   // check Size
-  if (fsize == sd_noteSize(bank, note)) {
+  if (fsize == audio->midiNoteSize(bank, note)) {
     if (fsize > 0) {
       LOG("ok " + file);
       sync_setStatus("File ok "+file);
@@ -117,7 +117,7 @@ void sync_fileCheck(String payload) {
 
   // Delete wrong size file
   sync_setStatus("Delete file "+file);
-  sd_noteDelete(bank, note);
+  audio->midiNoteDelete(bank, note);
 
   // missing file: download it
   if (fsize > 0) {
@@ -135,7 +135,7 @@ void sync_fileCheck(String payload) {
     dlFile = SD.open(file, FILE_WRITE);
     uint32_t startTime = millis();
     LOG("downloading "+file);
-    
+
     char url[100];
     xSemaphoreTake(sync_lock, portMAX_DELAY);
     ("http://"+String(sync_host)+":3742/get"+file).toCharArray(url, 100);
@@ -209,4 +209,11 @@ String sync_getStatus() {
   return statu;
 }
 
-
+String pad3(int input) {
+  char bank[4];
+  bank[3] = 0;
+  bank[0] = '0' + input / 100;
+  bank[1] = '0' + (input / 10) % 10;
+  bank[2] = '0' + input % 10;
+  return String(bank);
+}
