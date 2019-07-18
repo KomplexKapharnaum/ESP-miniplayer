@@ -10,7 +10,8 @@ config.oscremote = {}
 config.oscremote.port = 3753;
 
 config.espserver = {}
-config.espserver.port = 12000;
+config.espserver.portin = 1819;
+config.espserver.portout = 1818;
 
 config.basepath = {}
 config.basepath.mp3 = '../mp3'

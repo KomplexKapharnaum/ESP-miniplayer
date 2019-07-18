@@ -23,6 +23,12 @@ function log(msg) {
   console.log(msg);
 }
 
+function oscType(a) {
+  t = (typeof a)[0]
+  if (t == 'n') t = 'i'
+  return t
+}
+
 
 
 class Client extends EventEmitter {
@@ -101,20 +107,20 @@ class Client extends EventEmitter {
     }
   }
 
-  send(message) {
-    var path = "/"+this.info['id']+message
+  send(message, args) {
+    var path = "/e"+this.info['id']+message
 
-    this.lastHash = this.server.broadcast(path)
-    this.lastSend = message
-    this.emit('send', message)
+    this.lastHash = this.server.broadcast(path, args)
+    this.lastSend = [path, args]
+    this.emit('send', [path, args])
   }
 
   playtest() {
-    this.send('/play/'+pad(0, 3)+'/'+pad(3, 3)+'/60')
+    this.send('/audio/sample', [0, 3, 20])
   }
 
   stopPlayback() {
-    this.send('/stop')
+    this.send('/audio/stop')
   }
 
   reset() {
@@ -128,7 +134,7 @@ class Client extends EventEmitter {
   }
 
   setChannel(chan) {
-    this.send("/setchannel/"+chan)
+    this.send("/channel", [parseInt(chan)])
   }
 
 }
@@ -142,8 +148,9 @@ class Channel extends EventEmitter {
     this.server = serv
 
     this.chan = 'c';
-    if (num <= 9) this.chan += '0'+(num)
-    else this.chan += num
+    // if (num <= 9) this.chan += '0'+(num)
+    // else 
+    this.chan += num
 
     this.media = 0
     this.doLoop = config.player.loop
@@ -164,15 +171,15 @@ class Channel extends EventEmitter {
     }, 100)*/
   }
 
-  send(message) {
+  send(message, args) {
     var path;
     if (this.num < 16) path = "/"+this.chan+message
     else path = "/all"+message
 
-    this.lastHash = this.server.broadcast(path)
-    this.lastSend = message
-    this.emit('send', message)
-    console.log(path)
+    this.lastHash = this.server.broadcast(path, args)
+    this.lastSend = [path, args]
+    this.emit('send', [path, args])
+    console.log([path, args])
   }
 
   ledall(red, green, blue) {
@@ -196,35 +203,30 @@ class Channel extends EventEmitter {
     this.sendledall()
   }
   sendledall() {
-    this.send('/led/all/all/'+this.leds[0]+'/'+this.leds[1]+'/'+this.leds[2]);
+    this.send('/leds/all', [this.leds[0],this.leds[1],this.leds[2]]);
   }
 
   play(media, velocity) {
     if (velocity === undefined) velocity = 100
     this.velocity = velocity
-
     this.media = media
-    this.send('/play/'+pad(this.bankDir, 3)+'/'+pad(this.media, 3)+'/'+this.gain())
+    this.send('/audio/sample', [this.bankDir, this.media, this.gain()])
   }
 
   playtest() {
-    /*this.velocity = 100
-    this.media = 'test'
-    this.send('/playtest')*/
-    this.bankDir = 0
-    this.play(3, 80)
+    this.send('/audio/sample', [0, 3, 20])
   }
 
   stop() {
     this.media = 0
-    this.send('/stop')
+    this.send('/audio/stop')
   }
 
   loop(doL) {
     if (doL !== undefined) {
       this.doLoop = doL
-      if (this.doLoop) this.send("/loop/1")
-      else this.send("/loop/0")
+      if (this.doLoop) this.send("/audio/loop", [1])
+      else this.send("/audio/loop", [0])
       this.emit('loop', this.doLoop)
     }
     return this.doLoop
@@ -235,7 +237,7 @@ class Channel extends EventEmitter {
   }
 
   sendGain() {
-    if (this.num < 16) this.send("/volume/"+this.gain())
+    if (this.num < 16) this.send("/audio/volume/"+this.gain())
     else {
       for (var ch in this.server.channels)
         if (this.server.channels[ch].num < 16) this.server.channels[ch].sendGain()
@@ -328,7 +330,7 @@ class Server extends Worker {
 
     // Kill previous servers
     const { spawnSync} = require('child_process');
-    spawnSync('fuser', ['-k', config.espserver.port+'/udp']);
+    spawnSync('fuser', ['-k', config.espserver.portin+'/udp']);
     spawnSync('fuser', ['-k', config.webremote.port+'/tcp']);
     spawnSync('fuser', ['-k', config.oscremote.port+'/udp']);
 
@@ -381,9 +383,9 @@ class Server extends Worker {
 
     this.udpPort = new OSC.UDPPort({
         localAddress: "0.0.0.0",
-        localPort: config.espserver.port,
+        localPort: config.espserver.portin,
         broadcast: true,
-        remotePort: 10000,
+        remotePort: config.espserver.portout,
         remoteAddress: this.broadcastIP
     });
 
@@ -397,32 +399,33 @@ class Server extends Worker {
 
     this.udpPort.on("osc", function (message, remote) {
 
+      // console.log(message)
+      
       if (message['address'] == "/remote" ) {
         console.log('remote')
         that.broadcast(message['args'][0]);
       }
 
-      if (message['address'] != "/iam/esp" ) return;
+      if (message['address'] != "/status" ) return;
 
       // Parse info
       var ip = remote.address;
       var info = {
         id: message['args'][0],
-        version: message['args'][1],
-        ip: remote.address,
-        port: message['args'][2],
-        channel: message['args'][3],
-        link: message['args'][4],
-        sd: message['args'][5],
-        sync: message['args'][6],
-        media: message['args'][7],
-        error: message['args'][8],
-        battery: message['args'][9],
-        syncerror: message['args'][10],
-        rssi: message['args'][11],
-        bssid: message['args'][12]
+        channel: message['args'][1],
+        version: message['args'][2],
+        bssid: message['args'][3],
+        ip: message['args'][4],
+        rssi: message['args'][5],
+        link: message['args'][6],
+        battery: message['args'][7],
+        sd: message['args'][8],
+        media: message['args'][9],
+        error: message['args'][10],
+        bank: message['args'][11],
+        sync: message['args'][12],
+        syncerror: message['args'][13]
       }
-      // console.log(message['args'][12])
 
       var id = info['id'];
 
@@ -437,29 +440,38 @@ class Server extends Worker {
       // Update client
       that.clients[id].update(ip, info);
 
-      // Send hello if nolink
-      if (!info.link) that.broadcast("/all/hello");
+      // Send ping if nolink
+      if (!info.link) that.broadcast("/ping");
     });
   }
 
-  // removeNode(id) {
-  //   if (this.clients[id]) this.clients[id].stop()
-  //   this.clients[id] = null
-  // }
-
-  broadcast(message) {
-    // console.log(message)
+  broadcast(message, args) {
+    
+    // BURST SEND
     // Hash message with Time
     var hash = crypto.createHash('sha1').update(message+'-'+(new Date()).getTime()).digest('hex').substring(0,10);
-
-    var oscmsg = {address: '/esp/'+hash+message}
+    // var oscmsg = {address: '/esp/'+hash+message}
+    // this.udpPort.send(oscmsg);
+    // this.udpPort.send(oscmsg);
+    // setTimeout(() => {  this.udpPort.send(oscmsg); }, 5)
+    // setTimeout(() => {  this.udpPort.send(oscmsg); }, 10)
+    // setTimeout(() => {  this.udpPort.send(oscmsg); }, 15)
+    // setTimeout(() => {  this.udpPort.send(oscmsg); }, 40)
+    
+    // ONE SEND
+    var oscmsg = {address: message}
+    if (args !== undefined) {
+      oscmsg['args'] = []
+      for (var a of args) {
+        oscmsg['args'].push({
+          type: oscType(a),
+          value: a
+        })
+      }
+    }
     this.udpPort.send(oscmsg);
-    this.udpPort.send(oscmsg);
-    setTimeout(() => {  this.udpPort.send(oscmsg); }, 5)
-    setTimeout(() => {  this.udpPort.send(oscmsg); }, 10)
-    setTimeout(() => {  this.udpPort.send(oscmsg); }, 15)
-    setTimeout(() => {  this.udpPort.send(oscmsg); }, 40)
-
+    console.log('send', oscmsg)
+    
     for (var ch in this.channels)
       if (this.channels[ch].emulator) this.channels[ch].emulator.command(oscmsg)
 
