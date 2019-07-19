@@ -107,34 +107,36 @@ class Client extends EventEmitter {
     }
   }
 
-  send(message, args) {
+  send(message, args, useMqtt) {
     var path = "/e"+this.info['id']+message
 
-    this.lastHash = this.server.broadcast(path, args)
+    if (args === true) this.lastHash = this.server.broadcastHiFi(path)
+    else if (useMqtt) this.lastHash = this.server.broadcastHiFi(path, args)
+    else this.lastHash = this.server.broadcastLoFi(path, args)
     this.lastSend = [path, args]
     this.emit('send', [path, args])
   }
 
   playtest() {
-    this.send('/audio/sample', [0, 3, 20])
+    this.send('/audio/noteon', [0, 3, 20], true)
   }
 
   stopPlayback() {
-    this.send('/audio/stop')
+    this.send('/audio/stop', true)
   }
 
   reset() {
-    this.send("/reset")
+    this.send("/reset", true)
     this.emit('reset')
   }
 
   shutdown() {
-    this.send("/shutdown")
+    this.send("/shutdown", true)
     this.emit('shutdown')
   }
 
   setChannel(chan) {
-    this.send("/channel", [parseInt(chan)])
+    this.send("/channel", [parseInt(chan)], true)
   }
 
 }
@@ -152,7 +154,7 @@ class Channel extends EventEmitter {
     // else 
     this.chan += num
 
-    this.media = 0
+    this.note = 0
     this.doLoop = config.player.loop
     this.doNoteOff = true
     this.bankDir = 1
@@ -171,12 +173,15 @@ class Channel extends EventEmitter {
     }, 100)*/
   }
 
-  send(message, args) {
+  send(message, args, useMqtt) {
     var path;
     if (this.num < 16) path = "/"+this.chan+message
     else path = "/all"+message
 
-    this.lastHash = this.server.broadcast(path, args)
+    if (args === true) this.lastHash = this.server.broadcastHiFi(path)
+    else if (useMqtt) this.lastHash = this.server.broadcastHiFi(path, args)
+    else this.lastHash = this.server.broadcastLoFi(path, args)
+
     this.lastSend = [path, args]
     this.emit('send', [path, args])
     console.log([path, args])
@@ -203,30 +208,30 @@ class Channel extends EventEmitter {
     this.sendledall()
   }
   sendledall() {
-    this.send('/leds/all', [this.leds[0],this.leds[1],this.leds[2]]);
+    this.send('/leds/all', [this.leds[0],this.leds[1],this.leds[2]], true);
   }
 
-  play(media, velocity) {
+  play(note, velocity) {
     if (velocity === undefined) velocity = 100
     this.velocity = velocity
-    this.media = media
-    this.send('/audio/sample', [this.bankDir, this.media, this.gain()])
+    this.note = note
+    this.send('/audio/noteon', [this.bankDir, this.note, this.gain()], true)
   }
 
   playtest() {
-    this.send('/audio/sample', [0, 3, 20])
+    this.send('/audio/noteon', [0, 3, 20], true)
   }
 
   stop() {
-    this.media = 0
-    this.send('/audio/stop')
+    this.note = 0
+    this.send('/audio/stop', true)
   }
 
   loop(doL) {
     if (doL !== undefined) {
       this.doLoop = doL
-      if (this.doLoop) this.send("/audio/loop", [1])
-      else this.send("/audio/loop", [0])
+      if (this.doLoop) this.send("/audio/loop", [1], true)
+      else this.send("/audio/loop", [0], true)
       this.emit('loop', this.doLoop)
     }
     return this.doLoop
@@ -237,11 +242,7 @@ class Channel extends EventEmitter {
   }
 
   sendGain() {
-    if (this.num < 16) this.send("/audio/volume/"+this.gain())
-    else {
-      for (var ch in this.server.channels)
-        if (this.server.channels[ch].num < 16) this.server.channels[ch].sendGain()
-      }
+    this.send("/audio/volume", [this.gain()], false)
   }
 
   noteOffStop(doO) {
@@ -252,12 +253,12 @@ class Channel extends EventEmitter {
   }
 
   reset() {
-    this.send("/reset")
+    this.send("/reset", true)
     this.emit('reset')
   }
 
   shutdown() {
-    this.send("/shutdown")
+    this.send("/shutdown", true)
     this.emit('shutdown')
   }
 
@@ -345,10 +346,12 @@ class Server extends Worker {
 
     this.on('start', function() {
       this.udpPort.open();
+      this.udpPort2.open();
     });
 
     this.on('stop', function() {
       this.udpPort.close();
+      this.udpPort2.close();
       for (var cl in that.clients) that.clients[cl].stop();
       for (var ch in that.channels) if (that.channels[ch].emulator) that.channels[ch].emulator.stop();
     });
@@ -363,7 +366,7 @@ class Server extends Worker {
         var TICK_SYNC = Math.round(TIME_SYNC/that.timerate);
         if (that.tickSync > TICK_SYNC) {
           that.tickSync = 0
-          that.broadcast('/all/sync/'+that.syncserver.syncStamp())
+          that.broadcastLoFi('/all/sync', [that.syncserver.syncStamp()])
           that.emit('syncstamp', that.syncserver.syncStamp(), that.syncserver.fileCount())
         }
       }
@@ -380,6 +383,11 @@ class Server extends Worker {
           this.broadcastIP = ip.subnet(ifaces[i][j]['address'], ifaces[i][j]['netmask'])['broadcastAddress']
           // log(broadcastIP)
         }
+
+    this.udpPort2 = new OSC.UDPPort({
+        remotePort: config.espserver.osc2mqtt.port,
+        remoteAddress: config.espserver.osc2mqtt.server
+    });
 
     this.udpPort = new OSC.UDPPort({
         localAddress: "0.0.0.0",
@@ -403,7 +411,7 @@ class Server extends Worker {
       
       if (message['address'] == "/remote" ) {
         console.log('remote')
-        that.broadcast(message['args'][0]);
+        that.broadcastLoFi(message['args'][0]);
       }
 
       if (message['address'] != "/status" ) return;
@@ -441,23 +449,22 @@ class Server extends Worker {
       that.clients[id].update(ip, info);
 
       // Send ping if nolink
-      if (!info.link) that.broadcast("/ping");
+      if (!info.link) that.broadcastLoFi("/ping");
     });
   }
 
-  broadcast(message, args) {
-    
-    // BURST SEND
-    // Hash message with Time
+  broadcastLoFi(message, args) {
+    return this.oscBroadcaster(message, args, false)
+  }
+
+  broadcastHiFi(message, args) {
+    return this.oscBroadcaster(message, args, true)
+  }
+
+  oscBroadcaster(message, args, useMqtt) {
+
     var hash = crypto.createHash('sha1').update(message+'-'+(new Date()).getTime()).digest('hex').substring(0,10);
-    // var oscmsg = {address: '/esp/'+hash+message}
-    // this.udpPort.send(oscmsg);
-    // this.udpPort.send(oscmsg);
-    // setTimeout(() => {  this.udpPort.send(oscmsg); }, 5)
-    // setTimeout(() => {  this.udpPort.send(oscmsg); }, 10)
-    // setTimeout(() => {  this.udpPort.send(oscmsg); }, 15)
-    // setTimeout(() => {  this.udpPort.send(oscmsg); }, 40)
-    
+
     // ONE SEND
     var oscmsg = {address: message}
     if (args !== undefined) {
@@ -469,9 +476,16 @@ class Server extends Worker {
         })
       }
     }
-    this.udpPort.send(oscmsg);
-    console.log('send', oscmsg)
-    
+
+    if (useMqtt) {
+      this.udpPort2.send(oscmsg);
+      console.log('send HiFi (udp via mqtt)', oscmsg)
+    }
+    else {
+      this.udpPort.send(oscmsg);
+      console.log('send LoFi (udp broadcast)', oscmsg)
+    }
+
     for (var ch in this.channels)
       if (this.channels[ch].emulator) this.channels[ch].emulator.command(oscmsg)
 

@@ -60,23 +60,23 @@ class Device extends Worker {
   command(cmd) {
 
     var path = cmd['address'].split('/')
-    if (path[1] != 'esp') return
-    if (path[2] != 'manual' && path[2] == this.lastPacket) return
-    else this.lastPacket = path[2]
-    if (path[3] != 'all' && path[3] != 'c'+pad(this.channel,2) && path[3] != this.id) return
+    // if (path[1] != 'esp') return
+    // if (path[2] != 'manual' && path[2] == this.lastPacket) return
+    // else this.lastPacket = path[2]
+    if (path[1] != 'all' && path[1] != 'c'+this.channel && path[1] != 'e'+this.id) return
 
-    if (path[4] == 'stop') this.emit('action.stop')
-    else if (path[4] == 'play') {
-      this.media = glob.sync(config.basepath.mp3+"/"+pad(parseInt(path[5]),3)+"/"+pad(parseInt(path[6]),3)+"*.mp3")[0]
+    if (path[2] == 'stop') this.emit('action.stop')
+    else if (path[2] == 'play') {
+      this.media = glob.sync(config.basepath.mp3+"/"+pad(parseInt(path[3]),3)+"/"+pad(parseInt(path[4]),3)+"*.mp3")[0]
       if (this.media) this.media = this.media.split(config.basepath.mp3)[1]
-      this.emit('action.play', {media:this.media, volume:parseInt(path[7])})
+      this.emit('action.play', {media:this.media, volume:parseInt(path[5])})
     }
-    else if (path[4] == 'playtest') {
+    else if (path[2] == 'playtest') {
       this.media = '/test.mp3'
       this.emit('action.play', {media:this.media, volume:100})
     }
-    else if (path[4] == 'volume') this.emit('action.volume', parseInt(path[5])) //this.mplayer.volume(parseInt(path[5]))
-    else if (path[4] == 'loop') this.emit('action.loop', (parseInt(path[5]) > 0))
+    else if (path[2] == 'volume') this.emit('action.volume', parseInt(path[3])) //this.mplayer.volume(parseInt(path[5]))
+    else if (path[2] == 'loop') this.emit('action.loop', (parseInt(path[3]) > 0))
 
   }
 

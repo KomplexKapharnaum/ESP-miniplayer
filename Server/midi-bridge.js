@@ -57,7 +57,7 @@ class MidiInterface {
 
       // stop all
       else if (msg.controller == 119) {
-        that.ESPserver.broadcast('/all/stop')
+        that.ESPserver.broadcastHiFi('/all/stop')
         for (var i=1; i<=16; i++) that.ESPserver.channel(i).stop()
       }
     });
@@ -71,13 +71,13 @@ class MidiInterface {
     // Teleco
     this.MidiIN.on('stop', function () {
       console.log('stop!')
-      // that.ESPserver.broadcast('/all/stop');
+      // that.ESPserver.broadcastHiFi('/all/stop');
       // for (var i=1; i<=16; i++) that.ESPserver.channel(i).stop()
     });
 
     // Program Change
     this.MidiIN.on('program', (msg) => {
-      console.log(msg)
+      console.log('BANK CHANGE', msg.number+1, msg)
       that.ESPserver.channel((msg.channel+1)).bank(msg.number+1)
     })
 
