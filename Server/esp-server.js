@@ -346,12 +346,10 @@ class Server extends Worker {
 
     this.on('start', function() {
       this.udpPort.open();
-      this.udpPort2.open();
     });
 
     this.on('stop', function() {
       this.udpPort.close();
-      this.udpPort2.close();
       for (var cl in that.clients) that.clients[cl].stop();
       for (var ch in that.channels) if (that.channels[ch].emulator) that.channels[ch].emulator.stop();
     });
@@ -384,11 +382,6 @@ class Server extends Worker {
           // log(broadcastIP)
         }
 
-    this.udpPort2 = new OSC.UDPPort({
-        remotePort: config.espserver.osc2mqtt.port,
-        remoteAddress: config.espserver.osc2mqtt.server
-    });
-
     this.udpPort = new OSC.UDPPort({
         localAddress: "0.0.0.0",
         localPort: config.espserver.portin,
@@ -402,7 +395,7 @@ class Server extends Worker {
     });
 
     this.udpPort.on("ready", function () {
-        console.log('OSC Server listening on port ' + config.espserver.port+ ' / broadcasting on '+this.broadcastIP);
+        console.log('OSC Server listening on port ' + config.espserver.portin+ ' / broadcasting on '+this.broadcastIP);
     });
 
     this.udpPort.on("osc", function (message, remote) {
@@ -478,7 +471,7 @@ class Server extends Worker {
     }
 
     if (useMqtt) {
-      this.udpPort2.send(oscmsg);
+      this.udpPort.send(oscmsg, config.espserver.osc2mqtt.server, config.espserver.osc2mqtt.port);
       console.log('send HiFi (udp via mqtt)', oscmsg)
     }
     else {
