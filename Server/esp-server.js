@@ -126,12 +126,12 @@ class Client extends EventEmitter {
   }
 
   reset() {
-    this.send("/reset", true)
+    this.send("/reset")
     this.emit('reset')
   }
 
   shutdown() {
-    this.send("/shutdown", true)
+    this.send("/shutdown")
     this.emit('shutdown')
   }
 
@@ -151,7 +151,7 @@ class Channel extends EventEmitter {
 
     this.chan = 'c';
     // if (num <= 9) this.chan += '0'+(num)
-    // else 
+    // else
     this.chan += num
 
     this.note = 0
@@ -257,12 +257,12 @@ class Channel extends EventEmitter {
   }
 
   reset() {
-    this.send("/reset", true)
+    this.send("/reset")
     this.emit('reset')
   }
 
   shutdown() {
-    this.send("/shutdown", true)
+    this.send("/shutdown")
     this.emit('shutdown')
   }
 
@@ -405,7 +405,7 @@ class Server extends Worker {
     this.udpPort.on("osc", function (message, remote) {
 
       // console.log(message)
-      
+
       if (message['address'] == "/remote" ) {
         console.log('remote')
         that.broadcastLoFi(message['args'][0]);
