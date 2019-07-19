@@ -242,7 +242,11 @@ class Channel extends EventEmitter {
   }
 
   sendGain() {
-    this.send("/audio/volume", [this.gain()], false)
+    if (this.num < 16) this.send("/audio/volume", [this.gain()])
+    else {
+      for (var ch in this.server.channels)
+        if (this.server.channels[ch].num < 16) this.server.channels[ch].sendGain()
+      }
   }
 
   noteOffStop(doO) {
