@@ -289,7 +289,7 @@ class Channel extends EventEmitter {
 
   gain() {
     // CONVERT 0->127 (volume channel CC7) x 0->127 (velocity note) x 0->127 (master volume cc7 ch16) into 0->100
-    return Math.round((this.volumeCh*2*this.velocity*this.server.master().volumeCh*100)/(2048383*2))
+    return Math.round((this.volumeCh*this.velocity*this.server.master().volumeCh*100)/(2048383))
   }
 
   getSnapshot(withClients) {
