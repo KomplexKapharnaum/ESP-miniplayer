@@ -65,7 +65,8 @@ class MidiInterface {
     // NoteOFF :: STOP
     this.MidiIN.on('noteoff', (msg) => {
       if (that.ESPserver.channel((msg.channel+1)).noteOffStop())
-        that.ESPserver.channel((msg.channel+1)).stop()
+        //that.ESPserver.channel((msg.channel+1)).stop()
+        that.ESPserver.channel((msg.channel+1)).noteoff(msg.note)
     });
 
     // Teleco

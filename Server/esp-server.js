@@ -126,12 +126,12 @@ class Client extends EventEmitter {
   }
 
   reset() {
-    this.send("/reset", true)
+    this.send("/reset")
     this.emit('reset')
   }
 
   shutdown() {
-    this.send("/shutdown", true)
+    this.send("/shutdown")
     this.emit('shutdown')
   }
 
@@ -218,6 +218,10 @@ class Channel extends EventEmitter {
     this.send('/audio/noteon', [this.bankDir, this.note, this.gain()], true)
   }
 
+  noteoff(note) {
+    this.send('/audio/noteoff', [this.note], true)
+  }
+
   playtest() {
     this.send('/audio/noteon', [0, 3, 20], true)
   }
@@ -257,12 +261,12 @@ class Channel extends EventEmitter {
   }
 
   reset() {
-    this.send("/reset", true)
+    this.send("/reset")
     this.emit('reset')
   }
 
   shutdown() {
-    this.send("/shutdown", true)
+    this.send("/shutdown")
     this.emit('shutdown')
   }
 
