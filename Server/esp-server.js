@@ -151,7 +151,7 @@ class Channel extends EventEmitter {
 
     this.chan = 'c';
     // if (num <= 9) this.chan += '0'+(num)
-    // else 
+    // else
     this.chan += num
 
     this.note = 0
@@ -409,7 +409,7 @@ class Server extends Worker {
     this.udpPort.on("osc", function (message, remote) {
 
       // console.log(message)
-      
+
       if (message['address'] == "/remote" ) {
         console.log('remote')
         that.broadcastLoFi(message['args'][0]);
