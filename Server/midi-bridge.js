@@ -21,10 +21,10 @@ class MidiInterface {
 
     // NoteON :: PLAY - STOP
     this.MidiIN.on('noteon', (msg) => {
-      // msg.note += 1
+      msg.note -= 1
       msg.channel += 1
 
-      if (msg.note == 128) that.ESPserver.channel(msg.channel).stop()    // Magic note OFF
+      if (msg.note == 127) that.ESPserver.channel(msg.channel).stop()    // Magic note OFF
       else that.ESPserver.channel(msg.channel).play(msg.note, msg.velocity)
 
       console.log(msg)
@@ -64,6 +64,7 @@ class MidiInterface {
 
     // NoteOFF :: STOP
     this.MidiIN.on('noteoff', (msg) => {
+      msg.note -= 1
       if (that.ESPserver.channel((msg.channel+1)).noteOffStop())
         //that.ESPserver.channel((msg.channel+1)).stop()
         that.ESPserver.channel((msg.channel+1)).noteoff(msg.note)
