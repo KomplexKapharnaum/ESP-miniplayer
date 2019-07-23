@@ -264,11 +264,13 @@ class Channel extends EventEmitter {
 
   reset() {
     this.send("/reset")
+    this.send("/reset", undefined, true)
     this.emit('reset')
   }
 
   shutdown() {
     this.send("/shutdown")
+    this.send("/shutdown", undefined, true)
     this.emit('shutdown')
   }
 
